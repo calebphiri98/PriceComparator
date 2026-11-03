@@ -232,8 +232,12 @@ function agri_query_prices(PDO $db): array
     foreach ($db->query("SELECT id, crop, price_per_kg, location, source_name AS source, observed_at, NULL AS photo_path, source_url, 'external' AS listing_type FROM agri_external_quotes")->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $result[] = $r;
     }
+    $legacyTableExists = $db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'online_market_prices'")->fetchColumn();
+
+    if ($legacyTableExists) {
     foreach ($db->query("SELECT 0 AS id, crop, price_per_kg, location, source_name AS source, observed_at, NULL AS photo_path, source_url, 'legacy' AS listing_type FROM online_market_prices WHERE currency = 'MWK' AND unit = 'kg'")->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $result[] = $r;
+    }
     }
     return $result;
 }
