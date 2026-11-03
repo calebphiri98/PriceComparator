@@ -1,5 +1,7 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/includes/features.php';
+require_once __DIR__ . '/includes/market_plus.php';
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['role'] ?? '', ['buyer', 'admin'], true)) {
     header("Location: login.php");
