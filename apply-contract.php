@@ -6,6 +6,18 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if (($_SESSION['role'] ?? '') !== 'farmer') {
+    http_response_code(403);
+    $page_title = "Farmers Only";
+    require 'includes/header.php';
+    ?>
+    <div class="alert alert-error">Only farmer accounts can apply for contracts.</div>
+    <p><a href="contracts.php">Back to contracts</a></p>
+    <?php
+    require 'includes/footer.php';
+    exit;
+}
+
 $contract_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $message = '';
 $error = '';
@@ -41,7 +53,9 @@ if (isset($_POST['apply'])) {
     $quantity = (int)($_POST['quantity'] ?? 0);
     $notes = trim($_POST['notes'] ?? '');
 
-    if ($full_name === '') {
+    if (!csrf_valid()) {
+        $error = 'Your session expired. Please refresh and submit the application again.';
+    } elseif ($full_name === '') {
         $error = "Full name is required.";
     } elseif ($national_id === '') {
         $error = "Malawian National ID number is required.";
@@ -294,6 +308,7 @@ require 'includes/header.php';
                 <?php endif; ?>
 
                 <form method="POST">
+                    <?= csrf_field() ?>
                     <div class="form-row">
                         <label>Full Name</label>
                         <input type="text" name="full_name" 
