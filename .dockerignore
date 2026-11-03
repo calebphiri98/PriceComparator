@@ -1,2 +1,6 @@
 .git
+backup
+*.zip
+.env
+includes/sms-config.local.php
 README.txt
