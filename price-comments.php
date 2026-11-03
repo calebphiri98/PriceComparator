@@ -1,5 +1,7 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/includes/features.php';
+require_once __DIR__ . '/includes/market_plus.php';
 
 $type = is_string($_GET['type'] ?? null) ? $_GET['type'] : '';
 $id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT) ?: 0;
