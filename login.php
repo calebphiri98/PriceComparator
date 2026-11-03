@@ -2,6 +2,9 @@
 require 'config.php';
 
 $error = '';
+$admin_count = (int) $db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn();
+$setup_key = getenv('ADMIN_SETUP_KEY');
+$show_admin_setup = $admin_count === 0 && is_string($setup_key) && strlen($setup_key) >= 32;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone = preg_replace('/\D/', '', $_POST['phone'] ?? '');
@@ -48,6 +51,9 @@ require 'includes/header.php';
         <button type="submit" class="btn btn-primary">Login</button>
     </form>
     <p style="margin-top:18px; text-align:center;">No account yet? <a href="register.php" style="font-weight:600;">Register here</a></p>
+    <?php if ($show_admin_setup): ?>
+        <p style="margin-top:10px; text-align:center;"><a href="setup-admin.php">Initial admin setup</a></p>
+    <?php endif; ?>
 </div>
 
 <?php require 'includes/footer.php'; ?>
