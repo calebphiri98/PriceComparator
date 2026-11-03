@@ -1,0 +1,4 @@
+Options -Indexes
+<FilesMatch "(^\.|config\.php$|check-db\.php$|check-sms-log\.php$|database\.sqlite.*|\.(sqlite|db|sql|env|log|bak|zip)$)">
+    Require all denied
+</FilesMatch>
