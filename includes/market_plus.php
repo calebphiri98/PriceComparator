@@ -78,6 +78,33 @@ function agri_upgrade(PDO $db): void
             }
         }
     }
+    // AgriPrice Render schema compatibility
+    $marketColumns = $db->query("PRAGMA table_info(market_prices)")
+        ->fetchAll(PDO::FETCH_ASSOC);
+
+    if (!$marketColumns) {
+        throw new RuntimeException("market_prices table is missing");
+    }
+
+    $columnNames = array_column($marketColumns, 'name');
+
+    if (!in_array('source', $columnNames, true)) {
+        $db->exec("ALTER TABLE market_prices ADD COLUMN source TEXT NOT NULL DEFAULT 'Local market'");
+    }
+
+    $db->exec("
+        CREATE TABLE IF NOT EXISTS online_market_prices (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            crop TEXT NOT NULL,
+            price_per_kg REAL NOT NULL,
+            location TEXT NOT NULL,
+            source_name TEXT NOT NULL,
+            source_url TEXT,
+            currency TEXT DEFAULT 'MWK',
+            unit TEXT DEFAULT 'kg',
+            observed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ");
     $done = true;
 }
 
