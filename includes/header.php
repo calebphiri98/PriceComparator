@@ -19,6 +19,8 @@ function nav_active($file, $current) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="assets/agri-plus.css">
+    <link rel="stylesheet" href="assets/agri-navbar.css">
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>
@@ -27,7 +29,7 @@ function nav_active($file, $current) {
     <header class="site-header">
         <div class="container nav">
             <div class="logo">
-                <a href="index.php">&#127806; AgriPrice Malawi</a>
+                <a href="index.php" aria-label="AgriPrice Malawi home"><span class="agri-brand-icon" aria-hidden="true">🌾</span><span class="agri-brand-text">AgriPrice <span>Malawi</span></span></a>
             </div>
 
             <button type="button" class="nav-toggle" id="navToggle"
@@ -37,9 +39,17 @@ function nav_active($file, $current) {
                 <nav aria-label="Main navigation">
                     <a href="index.php"<?= nav_active('index.php', $current_page) ?>>Home</a>
                     <a href="market-prices.php"<?= nav_active('market-prices.php', $current_page) ?>>Market Prices</a>
+                    <a href="crop-catalog.php"<?= nav_active('crop-catalog.php', $current_page) ?>>Crops</a>
+                    <a href="market-news.php"<?= nav_active('market-news.php', $current_page) ?>>News</a>
                     <a href="contracts.php"<?= nav_active('contracts.php', $current_page) ?>>Contracts</a>
-                    <a href="outside-markets.php"<?= nav_active('outside-markets.php', $current_page) ?>>Outside Markets</a>
-                    <a href="trending.php"<?= nav_active('trending.php', $current_page) ?>>Trending Crops</a>
+                    <details class="agri-explore">
+                        <summary<?= in_array($current_page, ['farmer-prices.php', 'outside-markets.php', 'trending.php'], true) ? ' class="active"' : '' ?>>Explore <span aria-hidden="true" class="agri-chevron"></span></summary>
+                        <div class="agri-explore-menu">
+                            <a href="farmer-prices.php"<?= nav_active('farmer-prices.php', $current_page) ?>>Farmer Prices</a>
+                            <a href="outside-markets.php"<?= nav_active('outside-markets.php', $current_page) ?>>Outside Markets</a>
+                            <a href="trending.php"<?= nav_active('trending.php', $current_page) ?>>Trending Crops</a>
+                        </div>
+                    </details>
                 </nav>
                 <div class="auth">
                     <?php if (!isset($_SESSION['user_id'])): ?>
@@ -61,22 +71,58 @@ function nav_active($file, $current) {
             <div class="dropdown-content">
                 <div class="dropdown-header">Quick Actions</div>
 
-                <?php if (in_array($_SESSION['role'] ?? '', ['officer', 'admin'])): ?>
-                    <!-- Admin Dashboard goes to Home page -->
+                <?php if (($_SESSION['role'] ?? '') === 'buyer'): ?>
+                    <div class="dropdown-section">
+                        <div class="dropdown-label">Buyer Actions</div>
+                        <a href="index.php"<?= nav_active('index.php', $current_page) ?>>Home</a>
+                        <a href="buyer-add-price.php">Post Price Offer</a>
+                        <a href="post-contract.php"<?= nav_active('post-contract.php', $current_page) ?>>Post Contract</a>
+                        <a href="outside-markets.php">View Buyer Offers</a>
+                    </div>
+                    <div class="dropdown-section">
+                        <div class="dropdown-label">Market</div>
+                        <a href="market-prices.php"<?= nav_active('market-prices.php', $current_page) ?>>Current Market Prices</a>
+                        <a href="farmer-prices.php"<?= nav_active('farmer-prices.php', $current_page) ?>>Farmer Prices</a>
+                        <a href="price-reports.php"<?= nav_active('price-reports.php', $current_page) ?>>Price Reports</a>
+                        <a href="market-news.php">Agricultural News</a>
+                        <a href="contracts.php"<?= nav_active('contracts.php', $current_page) ?>>Browse Contracts</a>
+                        <a href="trending.php"<?= nav_active('trending.php', $current_page) ?>>Trending Crops</a>
+                    </div>
+                    <div class="dropdown-section dropdown-account">
+                        <a href="logout.php" class="logout-link">Log Out</a>
+                    </div>
+                <?php else: ?>
+                <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
                     <a href="index.php">Admin Dashboard</a>
+                    <a href="admin.php?section=review">Review Submissions</a>
                     <a href="admin.php?section=prices">Manage Prices</a>
                     <a href="admin.php?section=contracts">View All Contracts</a>
+                    <a href="admin.php?section=sms">SMS Log</a>
                 <?php endif; ?>
 
-                <?php if (in_array($_SESSION['role'] ?? '', ['buyer', 'officer', 'admin'])): ?>
+                <?php if (in_array($_SESSION['role'] ?? '', ['farmer', 'admin'], true)): ?>
+                    <a href="price-reports.php">Price Reports</a>
+                <?php endif; ?>
+
+                <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
                     <a href="buyer-add-price.php">Post Price Offer</a>
+                    <a href="post-contract.php">Post Contract</a>
                     <a href="outside-markets.php">View Buyer Offers</a>
                 <?php endif; ?>
 
+                <?php if (($_SESSION['role'] ?? '') === 'farmer'): ?>
+                    <a href="farmer-add-price.php"<?= nav_active('farmer-add-price.php', $current_page) ?>>Post Expected Price</a>
+                    <a href="gross-margin.php">Gross Margin Calculator</a>
+                <?php endif; ?>
+
                 <a href="market-prices.php">Current Market Prices</a>
+                <a href="crop-catalog.php">Crop Directory</a>
+                <a href="market-news.php">Agricultural News</a>
+                <a href="farmer-prices.php"<?= nav_active('farmer-prices.php', $current_page) ?>>Farmer Prices</a>
                 <a href="contracts.php">Browse Contracts</a>
                 <a href="trending.php">Trending Crops</a>
                 <a href="logout.php" class="logout-link">Logout</a>
+                <?php endif; ?>
             </div>
         </div>
 
@@ -99,6 +145,20 @@ function nav_active($file, $current) {
         navToggle.addEventListener('click', function () {
             var open = navPanel.classList.toggle('open');
             navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+    }
+
+    var exploreMenu = document.querySelector('.agri-explore');
+    if (exploreMenu) {
+        document.addEventListener('click', function (event) {
+            if (!exploreMenu.contains(event.target)) exploreMenu.removeAttribute('open');
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && exploreMenu.open) {
+                exploreMenu.removeAttribute('open');
+                var summary = exploreMenu.querySelector('summary');
+                if (summary) summary.focus();
+            }
         });
     }
 
