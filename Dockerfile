@@ -2,7 +2,7 @@
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev libsqlite3-dev && \
-    docker-php-ext-install pdo_sqlite sqlite3 && \
+    php -r "if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) { exit(1); }" && \
     rm -rf /var/lib/apt/lists/*
 
 COPY . /var/www/html/
@@ -31,5 +31,6 @@ RUN sed -i 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf && \
 EXPOSE 10000
 
 CMD ["sh", "-c", "test -f /etc/secrets/config.php || { echo 'Missing Render config.php secret'; exit 1; }; cp /etc/secrets/config.php /var/www/html/config.php && chown www-data:www-data /var/www/html/config.php && chmod 640 /var/www/html/config.php && exec apache2-foreground"]
+
 
 
