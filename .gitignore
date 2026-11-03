@@ -1,0 +1,16 @@
+
+includes/sms-config.local.php
+.env
+.env.*
+!.env.example
+/config.php
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+/backup/
+/uploads/
+*.zip
+/vendor/
+/node_modules/
+*.log
+/.phpunit.cache/
