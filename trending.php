@@ -1,63 +1,26 @@
 <?php
 require 'config.php';
-
-$page_title = "Trending Crops";
+$page_title = 'Trending crops';
 $hide_main_nav = isset($_SESSION['user_id']);
+$area = agri_allowed_area($_GET['area'] ?? 'all');
+$recent = strtotime('-60 days');
+$activity = [];
+foreach (agri_query_prices($db) as $price) {
+    if (!agri_location_match($price['location'], $area) || strtotime((string)$price['observed_at']) < $recent) continue;
+    $key = strtolower($price['crop']);
+    if (!isset($activity[$key])) $activity[$key] = ['crop' => $price['crop'], 'observations' => 0, 'sources' => [], 'locations' => []];
+    $activity[$key]['observations']++;
+    $activity[$key]['sources'][$price['source']] = true;
+    $activity[$key]['locations'][strtolower($price['location'])] = true;
+}
+usort($activity, static fn($a,$b) => ($b['observations'] <=> $a['observations']) ?: strcasecmp($a['crop'], $b['crop']));
+$activity = array_slice($activity, 0, 18);
 require 'includes/header.php';
-
-$trending = [
-    ['name' => 'Maize', 'reason' => 'High demand across the country'],
-    ['name' => 'Tobacco', 'reason' => 'Strong export market'],
-    ['name' => 'Groundnuts', 'reason' => 'Rising local and regional demand'],
-    ['name' => 'Soybean', 'reason' => 'Growing industrial use'],
-    ['name' => 'Rice', 'reason' => 'Steady consumption growth'],
-    ['name' => 'Beans', 'reason' => 'Popular in local markets'],
-];
 ?>
-
-<?php if (isset($_SESSION['user_id'])): ?>
-<div class="page-layout">
-
-    <div class="side-menu">
-        <div class="side-header">Quick Menu</div>
-        <?php if (in_array($_SESSION['role'] ?? '', ['officer', 'admin'])): ?>
-            <a href="admin.php">Admin Dashboard</a>
-            <a href="admin.php?section=prices">Manage Prices</a>
-            <a href="admin.php?section=contracts">View All Contracts</a>
-        <?php endif; ?>
-        <?php if (in_array($_SESSION['role'] ?? '', ['buyer', 'officer', 'admin'])): ?>
-            <a href="buyer-add-price.php">Post Price Offer</a>
-            <a href="outside-markets.php">View Buyer Offers</a>
-        <?php endif; ?>
-        <a href="market-prices.php">Current Market Prices</a>
-        <a href="contracts.php">Browse Contracts</a>
-        <a href="trending.php" class="active">Trending Crops</a>
-        <a href="logout.php" style="color:#c62828;">Logout</a>
-    </div>
-
-    <div class="main-content">
-        <h1>Trending Crops</h1>
-        <div class="trend-grid">
-            <?php foreach ($trending as $t): ?>
-            <div class="trend-card">
-                <h3><?= htmlspecialchars($t['name']) ?></h3>
-                <p><?= htmlspecialchars($t['reason']) ?></p>
-            </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-</div>
-
-<?php else: ?>
-<h1>Trending Crops</h1>
-<div class="trend-grid">
-    <?php foreach ($trending as $t): ?>
-    <div class="trend-card">
-        <h3><?= htmlspecialchars($t['name']) ?></h3>
-        <p><?= htmlspecialchars($t['reason']) ?></p>
-    </div>
-    <?php endforeach; ?>
-</div>
-<?php endif; ?>
-
+<div class="agri-shell"><?php if (isset($_SESSION['user_id'])) require 'includes/quick-menu.php'; ?><div class="agri-content">
+    <div class="agri-page-intro"><span class="agri-kicker">MARKET ACTIVITY · LAST 60 DAYS</span><h1>Crops getting attention.</h1><p>Ranked by the number of recently recorded price listings, not by unverified claims of national demand. More observations do not necessarily mean more sales.</p></div>
+    <form method="GET" class="agri-filters"><div><label for="area">Area</label><select name="area" id="area"><?php foreach (['all','lunzu','blantyre','southern','central','northern'] as $a): ?><option value="<?= $a ?>" <?= $a === $area ? 'selected' : '' ?>><?= esc(agri_area_label($a)) ?></option><?php endforeach; ?></select></div><button class="btn">View activity</button></form>
+    <?php if (!$activity): ?><div class="agri-empty"><h3>No recent crop activity</h3><p>Try All Malawi. The system does not manufacture rankings when no recent records are available.</p></div><?php endif; ?>
+    <div class="agri-crop-grid"><?php foreach ($activity as $item): ?><article class="agri-crop-card"><img loading="lazy" src="<?= esc(agri_crop_image($item['crop'])) ?>" alt="Illustration of <?= esc($item['crop']) ?>"><div><h2><?= esc($item['crop']) ?></h2><p><?= $item['observations'] ?> quotes · <?= count($item['sources']) ?> source types · <?= count($item['locations']) ?> locations</p><a href="market-prices.php?area=<?= esc($area) ?>&amp;crop=<?= urlencode($item['crop']) ?>">Explore quotes →</a></div></article><?php endforeach; ?></div>
+</div></div>
 <?php require 'includes/footer.php'; ?>
