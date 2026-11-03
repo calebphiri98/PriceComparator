@@ -1,11 +1,33 @@
-FROM php:8.3-apache
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev \
-    && docker-php-ext-install pdo_sqlite sqlite3 dom simplexml curl \
-    && rm -rf /var/lib/apt/lists/*
+﻿FROM php:8.3-apache
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev && \
+    docker-php-ext-install pdo_sqlite sqlite3 dom simplexml curl && \
+    rm -rf /var/lib/apt/lists/*
+
 COPY . /var/www/html/
-COPY security/apache-security.conf /etc/apache2/conf-enabled/market-security.conf
-RUN mkdir -p /var/www/html/uploads/produce && chown -R www-data:www-data /var/www/html/uploads
+
+RUN printf '%s\n' \
+    '<Directory /var/www/html>' \
+    'Options -Indexes' \
+    'AllowOverride All' \
+    '</Directory>' \
+    '<Directory /var/www/html/includes>' \
+    'Require all denied' \
+    '</Directory>' \
+    '<FilesMatch "(^\.|config\.php$|setup-admin\.php$|sync-market\.php$|diagnose-market\.php$|check-db\.php$|check-sms-log\.php$|database\.sqlite.*|\.(sqlite|db|sql|env|log|bak|zip)$)">' \
+    'Require all denied' \
+    '</FilesMatch>' \
+    > /etc/apache2/conf-enabled/agri-security.conf
+
+RUN mkdir -p /var/www/html/uploads/produce && \
+    chown -R www-data:www-data /var/www/html
+
 ENV PORT=10000
-RUN sed -i 's/Listen 80/Listen ${PORT}/' /etc/apache2/ports.conf && sed -i 's/:80/:${PORT}/' /etc/apache2/sites-available/000-default.conf
+
+RUN sed -i 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf && \
+    sed -i 's/:80/:10000/' /etc/apache2/sites-available/000-default.conf
+
 EXPOSE 10000
+
+CMD ["sh", "-c", "test -f /etc/secrets/config.php || { echo 'Missing Render config.php secret'; exit 1; }; cp /etc/secrets/config.php /var/www/html/config.php && chown www-data:www-data /var/www/html/config.php && chmod 640 /var/www/html/config.php && exec apache2-foreground"]
