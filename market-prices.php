@@ -1,5 +1,7 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/includes/features.php';
+require_once __DIR__ . '/includes/market_plus.php';
 $page_title = 'Market prices near you';
 $hide_main_nav = isset($_SESSION['user_id']);
 $area = agri_allowed_area($_GET['area'] ?? 'lunzu');
