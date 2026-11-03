@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = "All fields are required.";
     } elseif (strlen($phone) !== 10) {
         $error = "Phone number must be exactly 10 digits (for example 0888123456).";
-    } elseif (!in_array($role, ['farmer', 'buyer', 'officer'])) {
+    } elseif (!in_array($role, ['farmer', 'buyer'], true)) {
         $error = "Please choose a valid account type.";
     } else {
         $hashed = password_hash($password, PASSWORD_DEFAULT);
@@ -52,8 +52,7 @@ require 'includes/header.php';
         <label for="role">I am a:</label>
         <select id="role" name="role" required>
             <option value="farmer">Farmer</option>
-            <option value="buyer">Buyer / Trader</option>
-            <option value="officer">Agricultural Extension Officer</option>
+            <option value="buyer"<?= ($_POST['role'] ?? '') === 'buyer' ? ' selected' : '' ?>>Buyer</option>
         </select>
 
         <label for="password">Password</label>
