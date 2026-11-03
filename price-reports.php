@@ -1,5 +1,7 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/includes/features.php';
+require_once __DIR__ . '/includes/market_plus.php';
 $page_title = 'Crop price trends';
 $hide_main_nav = isset($_SESSION['user_id']);
 $source = ($_GET['dataset'] ?? 'platform') === 'ace' ? 'ace' : 'platform';
