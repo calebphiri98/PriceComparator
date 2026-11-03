@@ -1,5 +1,7 @@
 <?php
 require 'config.php';
+require_once __DIR__ . '/includes/features.php';
+require_once __DIR__ . '/includes/market_plus.php';
 $page_title = "Home";
 require 'includes/header.php';
 
