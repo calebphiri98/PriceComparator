@@ -7,9 +7,48 @@ $hide_main_nav = isset($_SESSION['user_id']);
 $source = ($_GET['dataset'] ?? 'platform') === 'ace' ? 'ace' : 'platform';
 $area = agri_allowed_area($_GET['area'] ?? 'all');
 $days = in_array((string) ($_GET['days'] ?? '180'), ['30', '90', '180', '365', 'all'], true) ? (string) ($_GET['days'] ?? '180') : '180';
-$raw = $source === 'ace'
-    ? $db->query("SELECT crop, price_per_kg, location, observed_at AS recorded_at FROM agri_external_quotes ORDER BY observed_at DESC LIMIT 6000")->fetchAll(PDO::FETCH_ASSOC)
-    : $db->query("SELECT crop, price_per_kg, location, recorded_at FROM market_price_history ORDER BY recorded_at DESC LIMIT 6000")->fetchAll(PDO::FETCH_ASSOC);
+$raw = [];
+
+if ($source === 'ace') {
+    $raw = $db->query(
+        "SELECT crop, price_per_kg, location, observed_at AS recorded_at
+         FROM agri_external_quotes
+         ORDER BY observed_at DESC LIMIT 6000"
+    )->fetchAll(PDO::FETCH_ASSOC);
+} else {
+    $exists = $db->query(
+        "SELECT name FROM sqlite_master
+         WHERE type = 'table' AND name = 'market_price_history'"
+    )->fetchColumn();
+
+    if ($exists) {
+        $columns = $db->query(
+            'PRAGMA table_info("market_price_history")'
+        )->fetchAll(PDO::FETCH_COLUMN, 1);
+
+        $dateColumn = null;
+
+        foreach (['recorded_at', 'updated_at', 'created_at', 'price_date', 'date', 'observed_at'] as $candidate) {
+            if (in_array($candidate, $columns, true)) {
+                $dateColumn = $candidate;
+                break;
+            }
+        }
+
+        $required = ['crop', 'price_per_kg', 'location'];
+
+        if ($dateColumn !== null && !array_diff($required, $columns)) {
+            $dateField = '"' . $dateColumn . '"';
+
+            $raw = $db->query(
+                "SELECT crop, price_per_kg, location,
+                 $dateField AS recorded_at
+                 FROM market_price_history
+                 ORDER BY $dateField DESC LIMIT 6000"
+            )->fetchAll(PDO::FETCH_ASSOC);
+        }
+    }
+}
 $cutoff = $days === 'all' ? 0 : strtotime('-' . $days . ' days');
 $available = [];
 $filtered = [];
