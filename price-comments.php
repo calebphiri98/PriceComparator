@@ -40,7 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($suggested !== '' && ($suggestedValue === false || $suggestedValue <= 0 || $suggestedValue > 1000000)) {
             $error = 'Enter a valid suggested price, or leave it empty.';
         } else {
-            $limit = $db->prepare("SELECT COUNT(*) FROM price_comments WHERE author_id = ? AND created_at >= datetime('now', '-1 day')");
+            $yesterday = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+                ? "CURRENT_TIMESTAMP - INTERVAL '1 day'"
+                : "datetime('now', '-1 day')";
+            $limit = $db->prepare("SELECT COUNT(*) FROM price_comments WHERE author_id = ? AND created_at >= $yesterday");
             $limit->execute([$userId]);
             if ((int) $limit->fetchColumn() >= 8) {
                 $error = 'Daily limit reached (8 comments). Try again tomorrow.';

@@ -57,9 +57,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = $photoError;
             } else {
             $stmt = $db->prepare("INSERT INTO buyer_price_offers (buyer_id, buyer_name, crop, price_per_kg, quantity, location, contact, photo_path)
-                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                                  VALUES (?, ?, ?, ?, ?, ?, ?, ?)" . ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? " RETURNING id" : ""));
             $stmt->execute([$user_id, $_SESSION['fullname'], $crop, $price, $quantity, $location, $contact, $photo]);
-            $offer_id = (int) $db->lastInsertId();
+            $offer_id = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+                ? (int) $stmt->fetchColumn() : (int) $db->lastInsertId();
 
             if ($is_admin) {
                 // Admin offers are approved immediately and farmers are notified.

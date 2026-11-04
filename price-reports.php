@@ -17,14 +17,13 @@ if ($source === 'ace') {
     )->fetchAll(PDO::FETCH_ASSOC);
 } else {
     $exists = $db->query(
-        "SELECT name FROM sqlite_master
-         WHERE type = 'table' AND name = 'market_price_history'"
+        ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql' ? "SELECT to_regclass('public.market_price_history')" : "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'market_price_history'")
     )->fetchColumn();
 
     if ($exists) {
-        $columns = $db->query(
-            'PRAGMA table_info("market_price_history")'
-        )->fetchAll(PDO::FETCH_COLUMN, 1);
+        $columns = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+            ? $db->query("SELECT column_name FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'market_price_history'")->fetchAll(PDO::FETCH_COLUMN)
+            : $db->query('PRAGMA table_info("market_price_history")')->fetchAll(PDO::FETCH_COLUMN, 1);
 
         $dateColumn = null;
 

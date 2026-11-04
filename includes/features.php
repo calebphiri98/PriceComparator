@@ -6,6 +6,7 @@
  */
 require_once __DIR__ . '/sms.php';
 
+if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'pgsql') {
 $db->exec("
     CREATE TABLE IF NOT EXISTS farmer_expected_prices (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,6 +53,8 @@ $db->exec("
     CREATE INDEX IF NOT EXISTS idx_fep_status ON farmer_expected_prices (status);
     CREATE INDEX IF NOT EXISTS idx_bpo_status ON buyer_price_offers (status);
 ");
+
+}
 
 /* ---------- small helpers ---------- */
 
@@ -162,10 +165,11 @@ function review_buyer_offer(PDO $db, int $offer_id, int $admin_id, string $decis
             $qty = max(1, (int) $o['quantity']);
             $amount = (float) $o['price_per_kg'] * $qty;
 
+            $pgsql = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
             $ins = $db->prepare("INSERT INTO outside_markets (company, crop, quantity, amount_mk, location, contact, created_at)
-                                 VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
+                                 VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)" . ($pgsql ? ' RETURNING id' : ''));
             $ins->execute([$o['buyer_name'], $o['crop'], $qty, $amount, $o['location'], $o['contact']]);
-            $published_id = (int) $db->lastInsertId();
+            $published_id = $pgsql ? (int) $ins->fetchColumn() : (int) $db->lastInsertId();
 
             $db->prepare('UPDATE outside_markets SET photo_path = ? WHERE id = ?')->execute([$o['photo_path'] ?? null, $published_id]);
 

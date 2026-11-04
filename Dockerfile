@@ -9,8 +9,9 @@ RUN printf '%s\n' \
 
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev libsqlite3-dev && \
-    php -r "if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) { exit(1); }" && \
+    apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev libsqlite3-dev libpq-dev && \
+    docker-php-ext-install pdo_pgsql pgsql && \
+    php -r "if (!in_array('pgsql', PDO::getAvailableDrivers(), true)) { exit(1); }" && \
     rm -rf /var/lib/apt/lists/*
 
 COPY . /var/www/html/

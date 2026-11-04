@@ -6,6 +6,11 @@ function agri_column_exists(PDO $db, string $table, string $column): bool
     if (!in_array($table, $allowed, true)) {
         return false;
     }
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+        $q = $db->prepare("SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?");
+        $q->execute([$table, $column]);
+        return (bool) $q->fetchColumn();
+    }
     $cols = $db->query('PRAGMA table_info(' . $table . ')')->fetchAll(PDO::FETCH_ASSOC);
     foreach ($cols as $col) {
         if ($col['name'] === $column) {
@@ -19,6 +24,10 @@ function agri_upgrade(PDO $db): void
 {
     static $done = false;
     if ($done) {
+        return;
+    }
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+        $done = true;
         return;
     }
     $db->exec("CREATE TABLE IF NOT EXISTS price_comments (
@@ -150,40 +159,95 @@ function agri_crop_image(string $crop, ?string $photo = null): string
     if ($photo && preg_match('~^uploads/produce/[a-f0-9]{32}\.(jpg|png|webp)$~', $photo)) {
         return $photo;
     }
+    $cloud = getenv('CLOUDINARY_CLOUD_NAME');
+    if ($photo && is_string($cloud) && preg_match('/^[a-zA-Z0-9_-]+$/', $cloud)) {
+        $prefix = 'https://res.cloudinary.com/' . $cloud . '/image/upload/';
+        if (str_starts_with($photo, $prefix) && filter_var($photo, FILTER_VALIDATE_URL)
+            && strlen($photo) < 2048 && !preg_match('/[\\s<>"\']/', $photo)) {
+            return $photo;
+        }
+    }
     return 'assets/crops/' . agri_crop_slug($crop) . '.svg';
 }
 
 function agri_upload_photo(array $file): array
 {
     $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
-    if ($error === UPLOAD_ERR_NO_FILE) {
-        return [null, null];
+    if ($error === UPLOAD_ERR_NO_FILE) return [null, null];
+    if ($error !== UPLOAD_ERR_OK || empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+        return [null, 'Photo upload failed. Verify that your image is JPG, PNG or WEBP and under 4 MB.'];
     }
-    if ($error !== UPLOAD_ERR_OK || !isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
-        return [null, 'Photo upload failed. Please choose a JPG, PNG or WEBP image.'];
-    }
-    if ((int) ($file['size'] ?? 0) < 1 || (int) $file['size'] > 4 * 1024 * 1024) {
+    if (($file['size'] ?? 0) < 1 || $file['size'] > 4 * 1024 * 1024) {
         return [null, 'Photo must be 4 MB or smaller.'];
     }
     $info = @getimagesize($file['tmp_name']);
-    if (!$info || $info[0] > 6000 || $info[1] > 6000 || $info[0] < 80 || $info[1] < 80) {
-        return [null, 'Please upload a valid image between 80 and 6000 pixels wide and high.'];
+    if (!$info || $info[0] < 80 || $info[1] < 80 || $info[0] > 6000 || $info[1] > 6000) {
+        return [null, 'Please upload an image between 80 and 6000 pixels in width and height.'];
     }
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
-    $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
-    if (!isset($extensions[$mime]) || !in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
-        return [null, 'Only JPG, PNG and WEBP photographs are accepted.'];
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+        return [null, 'Only JPG, PNG and WEBP photos are supported.'];
     }
-    $path = dirname(__DIR__) . '/uploads/produce';
-    if (!is_dir($path) && !mkdir($path, 0755, true) && !is_dir($path)) {
-        return [null, 'The image storage folder is unavailable.'];
+    $cloud = getenv('CLOUDINARY_CLOUD_NAME');
+    $key = getenv('CLOUDINARY_API_KEY');
+    $secret = getenv('CLOUDINARY_API_SECRET');
+    if (!is_string($cloud) || !preg_match('/^[a-zA-Z0-9_-]+$/', $cloud) || !$key || !$secret) {
+        return [null, 'Photo storage is not configured. Contact the administrator.'];
     }
-    $filename = bin2hex(random_bytes(16)) . '.' . $extensions[$mime];
-    if (!move_uploaded_file($file['tmp_name'], $path . '/' . $filename)) {
-        return [null, 'Could not save the photo. Check server folder permissions.'];
+    $timestamp = time();
+    $folder = 'agriprice/produce';
+    $signature = sha1('folder=' . $folder . '&timestamp=' . $timestamp . $secret);
+    $endpoint = 'https://api.cloudinary.com/v1_1/' . rawurlencode($cloud) . '/image/upload';
+    $body = false;
+    $status = 0;
+    if (function_exists('curl_init')) {
+        $ch = curl_init($endpoint);
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => [
+                'file' => new CURLFile($file['tmp_name'], $mime, 'produce-image'),
+                'api_key' => $key, 'timestamp' => (string)$timestamp,
+                'folder' => $folder, 'signature' => $signature,
+            ],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 35,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+        $body = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    } else {
+        $boundary = '----agriprice-' . bin2hex(random_bytes(12));
+        $fields = ['api_key' => $key, 'timestamp' => (string)$timestamp,
+            'folder' => $folder, 'signature' => $signature];
+        $payload = '';
+        foreach ($fields as $name => $value) {
+            $payload .= "--$boundary\r\nContent-Disposition: form-data; name=\"$name\"\r\n\r\n$value\r\n";
+        }
+        $payload .= "--$boundary\r\nContent-Disposition: form-data; name=\"file\"; filename=\"produce-image\"\r\nContent-Type: $mime\r\n\r\n";
+        $payload .= file_get_contents($file['tmp_name']) . "\r\n--$boundary--\r\n";
+        $context = stream_context_create([
+            'http' => ['method' => 'POST', 'header' => "Content-Type: multipart/form-data; boundary=$boundary\r\n",
+                'content' => $payload, 'timeout' => 35, 'ignore_errors' => true],
+            'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
+        ]);
+        $body = @file_get_contents($endpoint, false, $context);
+        $headers = function_exists('http_get_last_response_headers')
+            ? (http_get_last_response_headers() ?: []) : ($http_response_header ?? []);
+        foreach ($headers as $header) {
+            if (preg_match('~^HTTP/\S+\s+(\d+)~', $header, $m)) $status = (int)$m[1];
+        }
     }
-    @chmod($path . '/' . $filename, 0644);
-    return ['uploads/produce/' . $filename, null];
+    $response = is_string($body) ? json_decode($body, true) : null;
+    $url = is_array($response) ? ($response['secure_url'] ?? null) : null;
+    $prefix = 'https://res.cloudinary.com/' . $cloud . '/image/upload/';
+    if ($status < 200 || $status >= 300 || !is_string($url) || !str_starts_with($url, $prefix)
+        || !filter_var($url, FILTER_VALIDATE_URL)) {
+        error_log('AgriPrice Cloudinary upload failed; HTTP status ' . $status);
+        return [null, 'Photo upload could not be completed. Please try again.'];
+    }
+    return [$url, null];
 }
 
 function agri_allowed_area($area): string
@@ -259,7 +323,11 @@ function agri_query_prices(PDO $db): array
     foreach ($db->query("SELECT id, crop, price_per_kg, location, source_name AS source, observed_at, NULL AS photo_path, source_url, 'external' AS listing_type FROM agri_external_quotes")->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $result[] = $r;
     }
-    $legacyTableExists = $db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'online_market_prices'")->fetchColumn();
+    if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+        $legacyTableExists = (bool) $db->query("SELECT to_regclass('public.online_market_prices')")->fetchColumn();
+    } else {
+        $legacyTableExists = (bool) $db->query("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'online_market_prices'")->fetchColumn();
+    }
 
     if ($legacyTableExists) {
     foreach ($db->query("SELECT 0 AS id, crop, price_per_kg, location, source_name AS source, observed_at, NULL AS photo_path, source_url, 'legacy' AS listing_type FROM online_market_prices WHERE currency = 'MWK' AND unit = 'kg'")->fetchAll(PDO::FETCH_ASSOC) as $r) {

@@ -31,6 +31,7 @@ if (!$contract) {
     exit;
 }
 
+if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'pgsql') {
 $db->exec("CREATE TABLE IF NOT EXISTS applications (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     contract_id INTEGER NOT NULL,
@@ -44,6 +45,7 @@ $db->exec("CREATE TABLE IF NOT EXISTS applications (
     status TEXT DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 )");
+}
 
 if (isset($_POST['apply'])) {
     $full_name = trim($_POST['full_name'] ?? '');

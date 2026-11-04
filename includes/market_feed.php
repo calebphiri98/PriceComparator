@@ -122,8 +122,8 @@ function agri_remote_get(string $url, string $host, int $maxBytes = 2097152, ?st
 
 function agri_record_sync(PDO $db, string $feed, bool $success, string $message): void
 {
-    $stmt = $db->prepare("INSERT INTO agri_sync_status(feed, last_attempt, last_success, detail) VALUES (?, CURRENT_TIMESTAMP, CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE NULL END, ?)
-        ON CONFLICT(feed) DO UPDATE SET last_attempt=CURRENT_TIMESTAMP, last_success=CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE last_success END, detail=excluded.detail");
+    $stmt = $db->prepare("INSERT INTO agri_sync_status(feed, last_attempt, last_success, detail) VALUES (?, CURRENT_TIMESTAMP, CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE NULL END, ?)
+        ON CONFLICT(feed) DO UPDATE SET last_attempt=CURRENT_TIMESTAMP, last_success=CASE WHEN ? = 1 THEN CURRENT_TIMESTAMP ELSE last_success END, detail=excluded.detail");
     $stmt->execute([$feed, (int) $success, substr($message, 0, 500), (int) $success]);
 }
 
@@ -152,7 +152,7 @@ function agri_sync_ace(PDO $db): array
     }
     $xpath = new DOMXPath($document);
     $rows = $xpath->query('//table//tr');
-    $insert = $db->prepare('INSERT OR IGNORE INTO agri_external_quotes (crop, price_per_kg, location, source_name, source_url, observed_at) VALUES (?, ?, ?, ?, ?, ?)');
+    $insert = $db->prepare('INSERT INTO agri_external_quotes (crop, price_per_kg, location, source_name, source_url, observed_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT DO NOTHING');
     $count = 0;
     $found = 0;
     foreach ($rows as $row) {
@@ -192,7 +192,7 @@ function agri_sync_news(PDO $db): array
         'central' => 'Malawi Lilongwe Central Region agriculture when:30d',
         'northern' => 'Malawi Mzuzu Northern Region agriculture when:30d',
     ];
-    $stmt = $db->prepare('INSERT OR IGNORE INTO agri_news(region, title, publisher, article_url, published_at) VALUES (?, ?, ?, ?, ?)');
+    $stmt = $db->prepare('INSERT INTO agri_news(region, title, publisher, article_url, published_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT DO NOTHING');
     $new = 0;
     $read = 0;
     $connected = 0;
@@ -239,7 +239,10 @@ function agri_sync_news(PDO $db): array
         agri_record_sync($db, 'news', false, $detail);
         return [false, $detail . '. Cached articles were preserved.'];
     }
-    $db->exec("DELETE FROM agri_news WHERE published_at < datetime('now','-180 days')");
+    $oldNewsCutoff = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql'
+        ? "CURRENT_TIMESTAMP - INTERVAL '180 days'"
+        : "datetime('now','-180 days')";
+    $db->exec("DELETE FROM agri_news WHERE published_at < $oldNewsCutoff");
     agri_record_sync($db, 'news', true, "Read $read articles, inserted $new.");
     return [true, "News: read $read articles and added $new new links."];
 }

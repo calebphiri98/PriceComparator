@@ -13,3 +13,10 @@ security
 *.before-*
 README.txt
 node_modules
+*.bak
+*.backup*
+*.original-backup
+config.neon.example.php
+initialize-neon.php
+migrate-sqlite-to-neon.php
+postgres_schema.sql
