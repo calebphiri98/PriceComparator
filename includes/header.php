@@ -21,6 +21,8 @@ function nav_active($file, $current) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="assets/agri-plus.css">
     <link rel="stylesheet" href="assets/agri-navbar.css">
+    <link rel="stylesheet" href="assets/agri-responsive-fixes.css">
+    <script src="assets/agri-responsive-fixes.js" defer></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>

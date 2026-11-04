@@ -125,7 +125,12 @@ function notify_user(PDO $db, int $user_id, string $message): array
     if (!$phone) {
         return ['sent' => 0, 'failed' => 0, 'skipped' => 1, 'detail' => 'User has no phone number'];
     }
-    return sms_send_many($db, [['phone' => $phone, 'user_id' => $user_id]], $message);
+    try {
+        return sms_send_many($db, [['phone' => $phone, 'user_id' => $user_id]], $message);
+    } catch (Throwable $e) {
+        error_log('AgriPrice SMS recipient notification failed: ' . $e->getMessage());
+        return ['sent' => 0, 'failed' => 1, 'skipped' => 0, 'detail' => 'SMS service error'];
+    }
 }
 
 function notify_all_farmers(PDO $db, string $message): array
@@ -138,7 +143,12 @@ function notify_all_farmers(PDO $db, string $message): array
     foreach ($rows as $row) {
         $recipients[] = ['phone' => $row['phone'], 'user_id' => (int) $row['id']];
     }
-    return sms_send_many($db, $recipients, $message);
+    try {
+        return sms_send_many($db, $recipients, $message);
+    } catch (Throwable $e) {
+        error_log('AgriPrice SMS farmer broadcast failed: ' . $e->getMessage());
+        return ['sent' => 0, 'failed' => count($recipients), 'skipped' => 0, 'detail' => 'SMS service error'];
+    }
 }
 
 /* ---------- admin review: buyer price offers ---------- */
@@ -160,49 +170,80 @@ function review_buyer_offer(PDO $db, int $offer_id, int $admin_id, string $decis
     $price = mk($o['price_per_kg']);
 
     if ($decision === 'approve') {
-        $db->beginTransaction();
+        $step = 'starting approval';
         try {
+            if ($db->inTransaction()) {
+                throw new RuntimeException('Another transaction is still active.');
+            }
+            $db->beginTransaction();
+            $pgsql = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
+            $step = 'locking pending offer';
+            $locked = $db->prepare('SELECT * FROM buyer_price_offers WHERE id = ?' . ($pgsql ? ' FOR UPDATE' : ''));
+            $locked->execute([$offer_id]);
+            $o = $locked->fetch(PDO::FETCH_ASSOC);
+            if (!$o || $o['status'] !== 'pending') {
+                $db->rollBack();
+                return [false, 'The offer has already been reviewed. Refresh the page.'];
+            }
             $qty = max(1, (int) $o['quantity']);
             $amount = (float) $o['price_per_kg'] * $qty;
 
-            $pgsql = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql';
-            $ins = $db->prepare("INSERT INTO outside_markets (company, crop, quantity, amount_mk, location, contact, created_at)
-                                 VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)" . ($pgsql ? ' RETURNING id' : ''));
-            $ins->execute([$o['buyer_name'], $o['crop'], $qty, $amount, $o['location'], $o['contact']]);
-            $published_id = $pgsql ? (int) $ins->fetchColumn() : (int) $db->lastInsertId();
+            $step = 'publishing buyer offer';
+            $insert = $db->prepare(
+                'INSERT INTO outside_markets (company, crop, quantity, amount_mk, location, contact, photo_path, created_at) '
+                . 'VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)'
+                . ($pgsql ? ' RETURNING id' : '')
+            );
+            $insert->execute([
+                $o['buyer_name'], $o['crop'], $qty, $amount,
+                $o['location'], $o['contact'], $o['photo_path'] ?? null
+            ]);
+            $published_id = $pgsql ? (int) $insert->fetchColumn() : (int) $db->lastInsertId();
+            $insert->closeCursor();
+            if ($published_id <= 0) {
+                throw new RuntimeException('No published offer ID returned.');
+            }
 
-            $db->prepare('UPDATE outside_markets SET photo_path = ? WHERE id = ?')->execute([$o['photo_path'] ?? null, $published_id]);
-
+            $step = 'publishing market price';
             $mp = $db->prepare("INSERT INTO market_prices (crop, price_per_kg, location, source) VALUES (?, ?, ?, 'Buyer Offer')");
             $mp->execute([$o['crop'], $o['price_per_kg'], $o['location']]);
 
+            $step = 'finalizing offer status';
             $upd = $db->prepare("UPDATE buyer_price_offers
-                                 SET status = 'approved', rejection_reason = NULL, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP, published_id = ?
-                                 WHERE id = ? AND status = 'pending'");
+                SET status = 'approved', rejection_reason = NULL, reviewed_by = ?, reviewed_at = CURRENT_TIMESTAMP, published_id = ?
+                WHERE id = ? AND status = 'pending'");
             $upd->execute([$admin_id, $published_id, $offer_id]);
-
             if ($upd->rowCount() !== 1) {
-                $db->rollBack();
-                return [false, 'This offer has already been reviewed.'];
+                throw new RuntimeException('The pending offer could not be marked approved.');
             }
             $db->commit();
         } catch (Throwable $e) {
             if ($db->inTransaction()) {
                 $db->rollBack();
             }
-            return [false, 'Could not approve the offer: ' . $e->getMessage()];
+            error_log('AgriPrice buyer offer approval failed at ' . $step . ': ' . $e->getMessage());
+            return [false, 'Approval failed while ' . $step . '. Check Render logs for the original database error.'];
         }
 
         $text = 'Offer approved and published.';
-        if ($notify_poster) {
-            $rb = notify_user($db, (int) $o['buyer_id'],
-                'AgriPrice: Your offer of ' . $price . '/kg for ' . $o['crop'] . ' was APPROVED and is now live for farmers.');
-            $text .= ' Buyer ' . sms_summary($rb);
+        try {
+            if ($notify_poster) {
+                $rb = notify_user($db, (int) $o['buyer_id'],
+                    'AgriPrice: Your offer of ' . $price . '/kg for ' . $o['crop'] . ' was APPROVED and is now live for farmers.');
+                $text .= ' Buyer ' . sms_summary($rb);
+            }
+        } catch (Throwable $e) {
+            error_log('AgriPrice buyer notification failed: ' . $e->getMessage());
+            $text .= ' Buyer SMS could not be processed; check SMS log.';
         }
-        $rf = notify_all_farmers($db,
-            'AgriPrice: ' . $o['buyer_name'] . ' is buying ' . $o['crop'] . ' at ' . $price . '/kg in ' . $o['location'] . '. Call ' . $o['contact'] . '.');
-        $text .= ' Farmers ' . sms_summary($rf);
-
+        try {
+            $rf = notify_all_farmers($db,
+                'AgriPrice: ' . $o['buyer_name'] . ' is buying ' . $o['crop'] . ' at ' . $price . '/kg in ' . $o['location'] . '. Call ' . $o['contact'] . '.');
+            $text .= ' Farmers ' . sms_summary($rf);
+        } catch (Throwable $e) {
+            error_log('AgriPrice farmer broadcast failed: ' . $e->getMessage());
+            $text .= ' Farmer SMS could not be processed; check SMS log.';
+        }
         return [true, $text];
     }
 

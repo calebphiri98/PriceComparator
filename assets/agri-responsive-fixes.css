@@ -1,0 +1,34 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; }
+body { overflow-x: clip; }
+.container, main.container, .page-layout, .main-content, .review-card, .form-box, .agri-panel { min-width: 0; max-width: 100%; }
+.page-layout { width: 100%; }
+.main-content, .review-card { overflow-wrap: anywhere; }
+.main-content > *, .review-card > * { max-width: 100%; }
+.main-content input:not([type="checkbox"]):not([type="radio"]),
+.main-content select, .main-content textarea, .form-box input:not([type="checkbox"]):not([type="radio"]),
+.form-box select, .form-box textarea { max-width: 100%; min-width: 0; }
+.main-content form, .review-card form { max-width: 100%; }
+.agri-responsive-table { width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; margin: 12px 0 24px; border-radius: 12px; }
+.agri-responsive-table table { min-width: 620px; width: 100%; margin: 0; border-collapse: collapse; box-shadow: none; }
+.agri-responsive-table td, .agri-responsive-table th { white-space: normal; overflow-wrap: normal; }
+.agri-responsive-table td form { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 140px; }
+.agri-responsive-table td form input:not([type="hidden"]):not([type="checkbox"]) { max-width: 180px; width: 100%; }
+#agri-sms-composer { width: 100%; max-width: 100% !important; min-width: 0; }
+#agri-sms-composer > *, #agri-sms-composer input, #agri-sms-composer select, #agri-sms-composer textarea { max-width: 100%; min-width: 0; }
+#agri-sms-composer input[type="checkbox"] { width: auto; flex-shrink: 0; }
+@media (max-width: 860px) {
+  .page-layout { display: block; margin: 12px 0; }
+  .page-layout > .side-menu { display: flex !important; position: static; width: 100%; max-width: 100%; overflow-x: auto; overflow-y: hidden; white-space: nowrap; gap: 0; border-top-width: 3px; margin: 0 0 12px; scrollbar-width: thin; }
+  .page-layout > .side-menu .side-header, .page-layout > .side-menu .side-label { display: none; }
+  .page-layout > .side-menu > a { display: block; flex: 0 0 auto; font-size: .85rem; padding: 11px 13px; border-right: 1px solid #e2eadf; border-bottom: 0; }
+  .page-layout > .main-content { width: 100%; padding: 18px 14px; }
+  .review-card { padding: 12px; }
+}
+@media (max-width: 560px) {
+  .main-content, .agri-panel, .form-box { padding-inline: 12px; }
+  .main-content h1, .main-content h2, .review-card h2 { font-size: clamp(1.1rem, 5vw, 1.5rem); line-height: 1.3; }
+  .agri-responsive-table table { min-width: 610px; }
+  .main-content form button, .review-card form button { max-width: 100%; }
+  #agri-sms-composer button[type="submit"] { width: 100%; justify-self: stretch !important; }
+}
