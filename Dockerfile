@@ -38,4 +38,4 @@ RUN sed -i 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf && \
     sed -i 's/:80/:10000/' /etc/apache2/sites-available/000-default.conf
 
 EXPOSE 10000
-CMD ["sh", "-c", "test -f /etc/secrets/config.php || { echo 'Missing Render config.php secret'; exit 1; }; cp /etc/secrets/config.php /var/www/html/config.php && sed -i '1s/^\xEF\xBB\xBF//' /var/www/html/config.php && chown www-data:www-data /var/www/html/config.php && chmod 640 /var/www/html/config.php && exec apache2-foreground"]
+CMD ["sh", "-c", "test -f /etc/secrets/config.php || { echo 'Missing Render config.php secret'; exit 1; }; cp /etc/secrets/config.php /var/www/html/config.php && sed -i '1s/^\\xEF\\xBB\\xBF//' /var/www/html/config.php && chown www-data:www-data /var/www/html/config.php && chmod 640 /var/www/html/config.php && exec apache2-foreground"]
