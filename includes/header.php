@@ -21,8 +21,18 @@ function nav_active($file, $current) {
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="assets/agri-plus.css">
     <link rel="stylesheet" href="assets/agri-navbar.css">
-    <link rel="stylesheet" href="assets/agri-responsive-fixes.css">
     <script src="assets/agri-responsive-fixes.js" defer></script>
+    <?php
+    $pageCss = pathinfo($current_page, PATHINFO_FILENAME);
+    if (preg_match('/^[a-z0-9-]+$/', $pageCss)):
+        foreach ([$pageCss . '-legacy.css', $pageCss . '.css'] as $sheet):
+            if (is_file(__DIR__ . '/../assets/pages/' . $sheet)):
+    ?>
+    <link rel="stylesheet" href="assets/pages/<?= htmlspecialchars($sheet, ENT_QUOTES, 'UTF-8') ?>">
+    <?php endif; endforeach; endif; ?>
+    <?php if (in_array($current_page, ['admin.php','index.php','buyer-add-price.php','farmer-add-price.php','contracts.php','price-reports.php','post-contract.php','apply-contract.php'], true)): ?>
+    <script src="assets/pages/tables.js" defer></script>
+    <?php endif; ?>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to main content</a>

@@ -1,0 +1,43 @@
+
+main.container { width: min(100% - 32px, 1180px); max-width: 1180px; padding: 0; min-width: 0; }
+main.container > *, main.container .agri-shell, main.container .agri-content { min-width: 0; max-width: 100%; }
+main.container img { max-width: 100%; }
+main.container .agri-market-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 255px), 1fr)); gap: 18px; }
+main.container .agri-market-card { min-width: 0; overflow: hidden; }
+main.container .agri-market-art { height: 180px; display: flex; align-items: center; justify-content: center; }
+main.container .agri-market-art > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+main.container .agri-card-top { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; }
+main.container .agri-card-top strong { white-space: normal; overflow-wrap: anywhere; }
+main.container .agri-filters, main.container .agri-form { min-width: 0; max-width: 100%; }
+main.container .agri-filters > div { min-width: 0; }
+main.container .agri-filters input, main.container .agri-filters select,
+main.container .agri-form input, main.container .agri-form textarea,
+main.container .agri-form select { min-width: 0; width: 100%; max-width: 100%; }
+main.container .agri-shell:has(> .side-menu) { min-width: 0; }
+main.container .agri-shell > .agri-content { min-width: 0; }
+.agri-listing-contact { display: flex; align-items: center; gap: 8px; margin: 12px 0 0; padding: 10px 12px; border: 1px solid #cfe2d2; background: #f1f8f1; color: #1d5134; border-radius: 9px; flex-wrap: wrap; font-size: .9rem; }
+.agri-listing-contact a { color: #155936; font-weight: 750; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
+@media (max-width: 1000px) {
+  main.container .agri-shell:has(> .side-menu) { display: block; }
+  main.container .agri-shell > .side-menu { display: flex; flex-wrap: nowrap; gap: 0; overflow-x: auto; width: 100%; max-width: 100%; margin: 10px 0; border-radius: 10px; scrollbar-width: thin; }
+  main.container .agri-shell > .side-menu a { flex: 0 0 auto; padding: 12px 14px; white-space: nowrap; }
+  main.container .agri-shell > .side-menu .side-header, main.container .agri-shell > .side-menu .side-label { display: none; }
+}
+@media (max-width: 640px) {
+ main.container { width: calc(100% - 24px); }
+ main.container .agri-hero { display: block; padding: 20px 16px; min-height: 0; }
+ main.container .agri-hero-image { display: block; max-width: 180px; max-height: 130px; margin: 12px auto 0; }
+ main.container .agri-filters { padding: 12px; gap: 10px; }
+ main.container .agri-filters > div { flex: 1 1 100%; }
+ main.container .agri-filters button { width: 100%; }
+ main.container .agri-section-head { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+ main.container .agri-market-grid { grid-template-columns: 1fr; }
+ main.container .agri-market-art { height: 160px; }
+ main.container .agri-market-body { padding: 14px; }
+ main.container .agri-discussion-grid { grid-template-columns: minmax(0, 1fr); }
+ main.container .agri-list-card { grid-template-columns: 94px minmax(0, 1fr); }
+ main.container .agri-list-card img { width: 94px; }
+}
+
+main.container .agri-page-table { max-width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+main.container .agri-page-table table { min-width:600px; width:100%; }

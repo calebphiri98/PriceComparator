@@ -24,7 +24,9 @@ require 'includes/header.php';
         <article class="agri-market-card"><div class="agri-market-art"><img loading="lazy" src="<?= esc(agri_crop_image($f['crop'], $f['photo_path'] ?? null)) ?>" alt="<?= !empty($f['photo_path']) ? 'Produce uploaded for ' : 'Crop illustration of ' ?><?= esc($f['crop']) ?>"><span class="agri-source-tag">Farmer asking price</span></div><div class="agri-market-body"><div class="agri-card-top"><h3><?= esc($f['crop']) ?></h3><strong><?= esc(agri_currency($f['expected_price'])) ?><small> / kg</small></strong></div>
         <div class="agri-meta"><span>⌖ <?= esc($f['location']) ?> · <?= $f['quantity'] ? number_format($f['quantity']) . ' kg' : 'Quantity on request' ?></span><span><?= esc(agri_datetime($f['reviewed_at'] ?: $f['created_at'])) ?></span></div>
         <?php if (!empty($f['notes'])): ?><p class="agri-muted"><?= esc($f['notes']) ?></p><?php endif; ?>
-        <?php if ($canContact): ?><p class="agri-muted"><strong><?= esc($f['fullname']) ?></strong> · <?= esc($f['phone']) ?></p><?php else: ?><p class="agri-muted">Contact details are available to registered buyers.</p><?php endif; ?>
+        <?php if (!empty($f['phone'])): ?>
+        <p class="agri-listing-contact"><span>Posted by <strong><?= esc($f['fullname']) ?></strong></span> <span>Call: <a href="tel:<?= esc(preg_replace('/[^0-9+]/', '', (string)$f['phone'])) ?>"><?= esc($f['phone']) ?></a></span></p>
+        <?php endif; ?>
         <div class="agri-card-footer"><a href="price-comments.php?type=farmer&amp;id=<?= (int)$f['id'] ?>">Read price discussion</a><a href="price-reports.php?crop=<?= urlencode($f['crop']) ?>">See price trend ↗</a></div></div></article>
         <?php endforeach; ?>
     </div>

@@ -1,0 +1,106 @@
+.hero {
+    background: linear-gradient(135deg, #2e7d32, #66bb6a);
+    color: white;
+    text-align: center;
+    padding: 50px 20px;
+    border-radius: 16px;
+    margin: 25px 0 30px;
+}
+.hero h1 { margin: 0 0 12px; font-size: 2.1rem; }
+.hero p { margin: 0 0 22px; font-size: 1.05rem; opacity: 0.95; }
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.hero-buttons .btn {
+    padding: 12px 26px;
+    font-size: 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+}
+.btn-light {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border: none;
+}
+.btn-outline-light {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+.search-box {
+    background: white;
+    border-radius: 14px;
+    padding: 22px 24px;
+    box-shadow: 0 4px 18px rgba(46, 125, 50, 0.10);
+    margin-bottom: 35px;
+    border-top: 4px solid #8bc34a;
+}
+.search-box h2 {
+    margin: 0 0 12px;
+    color: #1b5e20;
+    font-size: 1.2rem;
+}
+.search-form {
+    display: flex;
+    gap: 10px;
+}
+.search-form input {
+    flex: 1;
+    padding: 12px 14px;
+    border: 1.5px solid #a5d6a7;
+    border-radius: 8px;
+    font-size: 0.95rem;
+}
+.search-form button {
+    padding: 12px 22px;
+    background: #2e7d32;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.search-form button:hover { background: #1b5e20; }
+
+.search-results {
+    margin-top: 18px;
+}
+.search-results table {
+    width: 100%;
+}
+
+.quick-access { margin-bottom: 50px; }
+.quick-access h2 { color: #1b5e20; margin-bottom: 25px; }
+.qa-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 22px;
+}
+.qa-card {
+    background: white;
+    border-radius: 14px;
+    padding: 26px 22px;
+    box-shadow: 0 4px 18px rgba(46, 125, 50, 0.10);
+    border-left: 5px solid #8bc34a;
+    display: flex;
+    flex-direction: column;
+}
+.qa-card h3 { margin: 0 0 10px; color: #1b5e20; font-size: 1.2rem; }
+.qa-card p { flex: 1; color: #555; margin: 0 0 18px; line-height: 1.5; }
+.qa-card .btn {
+    align-self: flex-start;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    border-radius: 7px;
+    font-weight: 600;
+    text-decoration: none;
+    background: #2e7d32;
+    color: white;
+    border: none;
+}
+.qa-card .btn:hover { background: #1b5e20; }

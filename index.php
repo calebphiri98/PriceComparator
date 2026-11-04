@@ -5,6 +5,8 @@ require_once __DIR__ . '/includes/market_plus.php';
 $page_title = "Home";
 require 'includes/header.php';
 
+require_once __DIR__ . '/includes/listing_contacts.php';
+$contactMap = agri_public_listing_contacts($db);
 $search = trim($_GET['q'] ?? '');
 $search_results = [];
 $home_local = array_values(array_filter(agri_query_prices($db), static fn($r) => agri_location_match((string)$r['location'], 'lunzu')));
@@ -37,118 +39,14 @@ if ($search !== '') {
     $stmt2->execute(['%' . $search . '%']);
     $buyer = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
-    $search_results = array_merge($online, $local, $buyer);
+    $farmerStmt = $db->prepare("SELECT f.crop, f.expected_price AS price_per_kg, f.location, u.phone AS contact, 'Farmer expected' AS source, NULL AS source_url, 'MWK' AS currency, 'kg' AS unit, f.created_at AS updated_at FROM farmer_expected_prices f JOIN users u ON u.id = f.farmer_id WHERE f.status = 'approved' AND f.crop LIKE ? ORDER BY f.crop");
+    $farmerStmt->execute(['%' . $search . '%']);
+    $farmer = $farmerStmt->fetchAll(PDO::FETCH_ASSOC);
+    $search_results = array_merge($online, $local, $buyer, $farmer);
 }
 ?>
 
-<style>
-.hero {
-    background: linear-gradient(135deg, #2e7d32, #66bb6a);
-    color: white;
-    text-align: center;
-    padding: 50px 20px;
-    border-radius: 16px;
-    margin: 25px 0 30px;
-}
-.hero h1 { margin: 0 0 12px; font-size: 2.1rem; }
-.hero p { margin: 0 0 22px; font-size: 1.05rem; opacity: 0.95; }
-.hero-buttons {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-.hero-buttons .btn {
-    padding: 12px 26px;
-    font-size: 1rem;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-}
-.btn-light {
-    background: #e8f5e9;
-    color: #1b5e20;
-    border: none;
-}
-.btn-outline-light {
-    background: transparent;
-    color: white;
-    border: 2px solid white;
-}
 
-.search-box {
-    background: white;
-    border-radius: 14px;
-    padding: 22px 24px;
-    box-shadow: 0 4px 18px rgba(46, 125, 50, 0.10);
-    margin-bottom: 35px;
-    border-top: 4px solid #8bc34a;
-}
-.search-box h2 {
-    margin: 0 0 12px;
-    color: #1b5e20;
-    font-size: 1.2rem;
-}
-.search-form {
-    display: flex;
-    gap: 10px;
-}
-.search-form input {
-    flex: 1;
-    padding: 12px 14px;
-    border: 1.5px solid #a5d6a7;
-    border-radius: 8px;
-    font-size: 0.95rem;
-}
-.search-form button {
-    padding: 12px 22px;
-    background: #2e7d32;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.search-form button:hover { background: #1b5e20; }
-
-.search-results {
-    margin-top: 18px;
-}
-.search-results table {
-    width: 100%;
-}
-
-.quick-access { margin-bottom: 50px; }
-.quick-access h2 { color: #1b5e20; margin-bottom: 25px; }
-.qa-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 22px;
-}
-.qa-card {
-    background: white;
-    border-radius: 14px;
-    padding: 26px 22px;
-    box-shadow: 0 4px 18px rgba(46, 125, 50, 0.10);
-    border-left: 5px solid #8bc34a;
-    display: flex;
-    flex-direction: column;
-}
-.qa-card h3 { margin: 0 0 10px; color: #1b5e20; font-size: 1.2rem; }
-.qa-card p { flex: 1; color: #555; margin: 0 0 18px; line-height: 1.5; }
-.qa-card .btn {
-    align-self: flex-start;
-    padding: 10px 20px;
-    font-size: 0.95rem;
-    border-radius: 7px;
-    font-weight: 600;
-    text-decoration: none;
-    background: #2e7d32;
-    color: white;
-    border: none;
-}
-.qa-card .btn:hover { background: #1b5e20; }
-</style>
 
 <div class="hero">
     <h1>Agricultural Market Price Tracker</h1>
@@ -166,7 +64,12 @@ if ($search !== '') {
     <?php foreach ($home_local as $r): ?>
         <article class="agri-market-card">
             <div class="agri-market-art"><img loading="lazy" src="<?= esc(agri_crop_image($r['crop'], $r['photo_path'] ?? null)) ?>" alt="<?= esc($r['crop']) ?>"><span class="agri-source-tag"><?= esc($r['source']) ?></span></div>
-            <div class="agri-market-body"><div class="agri-card-top"><h3><?= esc($r['crop']) ?></h3><strong><?= esc(agri_currency($r['price_per_kg'])) ?><small> / kg</small></strong></div><div class="agri-meta"><span>⌖ <?= esc($r['location']) ?></span><span><?= esc(agri_datetime($r['observed_at'])) ?></span></div></div>
+            <div class="agri-market-body"><div class="agri-card-top"><h3><?= esc($r['crop']) ?></h3><strong><?= esc(agri_currency($r['price_per_kg'])) ?><small> / kg</small></strong></div><div class="agri-meta"><span>⌖ <?= esc($r['location']) ?></span><span><?= esc(agri_datetime($r['observed_at'])) ?></span></div>
+            <?php $listedContact = $contactMap[$r['listing_type'] . ':' . $r['id']] ?? null; ?>
+            <?php if ($listedContact && trim($listedContact['phone']) !== ''): ?>
+            <p class="agri-listing-contact"><span><?= esc($listedContact['name']) ?></span><span>Call: <a href="tel:<?= esc(preg_replace('/[^0-9+]/', '', $listedContact['phone'])) ?>"><?= esc($listedContact['phone']) ?></a></span></p>
+            <?php endif; ?>
+            </div>
         </article>
     <?php endforeach; ?>
     </div>

@@ -1,0 +1,29 @@
+
+main.container { width: min(calc(100% - 32px), 1300px); max-width: 1300px; min-width: 0; }
+main.container .page-layout { display: grid; grid-template-columns: minmax(185px, 230px) minmax(0, 1fr); gap: 22px; align-items: start; width: 100%; min-width: 0; }
+main.container .page-layout > .side-menu { width: 100%; min-width: 0; }
+main.container .page-layout > .main-content { min-width: 0; width: 100%; max-width: 100%; }
+main.container .main-content > *, main.container .review-card { min-width: 0; max-width: 100%; }
+main.container .review-card { padding: 16px; overflow-wrap: anywhere; }
+main.container .agri-page-table { overflow-x: auto; max-width: 100%; width: 100%; -webkit-overflow-scrolling: touch; margin: 12px 0 20px; border-radius: 10px; }
+main.container .agri-page-table > table { width: 100%; min-width: 650px; margin: 0; border-collapse: collapse; }
+main.container .agri-page-table td, main.container .agri-page-table th { vertical-align: middle; padding: 12px 10px; }
+main.container .agri-page-table td form { display: flex; flex-wrap: wrap; gap: 6px; min-width: 130px; }
+main.container .agri-page-table td form input:not([type='hidden']) { width: 100%; max-width: 160px; min-width: 0; }
+main.container #agri-sms-composer { width: 100%; max-width: 100%; min-width: 0; }
+main.container #agri-sms-composer input:not([type='checkbox']), main.container #agri-sms-composer select, main.container #agri-sms-composer textarea { max-width: 100%; min-width: 0; width: 100%; }
+main.container #agri-sms-composer input[type='checkbox'] { width: auto; }
+@media (max-width: 900px) {
+ main.container .page-layout { display: flex; flex-direction: column; gap: 14px; }
+ main.container .page-layout > .side-menu { display: flex; flex-wrap: nowrap; gap: 0; overflow-x: auto; white-space: nowrap; max-width: 100%; border-radius: 10px; scrollbar-width: thin; position: static; }
+ main.container .page-layout > .side-menu > a { flex: 0 0 auto; display: block; width: auto; padding: 12px 14px; white-space: nowrap; }
+ main.container .page-layout > .side-menu .side-header, main.container .page-layout > .side-menu .side-label { display: none; }
+ main.container .page-layout > .main-content { padding: 20px 16px; }
+}
+@media (max-width: 560px) {
+ main.container { width: calc(100% - 20px); }
+ main.container .page-layout > .main-content { padding: 14px 12px; }
+ main.container .review-card { padding: 10px; }
+ main.container #agri-sms-composer button[type='submit'] { width: 100%; }
+ main.container .main-content h1 { font-size: clamp(1.5rem, 5vw, 1.9rem); }
+}

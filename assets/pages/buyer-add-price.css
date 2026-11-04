@@ -1,0 +1,15 @@
+
+main.container { width: min(calc(100% - 28px), 1160px); }
+main.container .page-layout { min-width: 0; }
+main.container .main-content, main.container .form-box, main.container .agri-content { min-width: 0; max-width: 100%; }
+main.container .form-box { width: min(100%, 690px); margin: 0 auto 26px; padding: clamp(16px, 3vw, 28px); }
+main.container .form-box input, main.container .form-box textarea, main.container .form-box select { min-width: 0; max-width: 100%; width: 100%; }
+main.container .agri-page-table { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 12px 0; }
+main.container .agri-page-table table { min-width: 560px; width: 100%; }
+@media (max-width: 860px) {
+ main.container .page-layout { display: block; }
+ main.container .page-layout > .side-menu { display: flex; overflow-x: auto; width: 100%; max-width: 100%; white-space: nowrap; }
+ main.container .page-layout > .side-menu > a { flex: 0 0 auto; }
+ main.container .main-content { width: 100%; min-width: 0; padding: 16px 12px; }
+}
+@media (max-width: 560px) { main.container .form-box { padding: 16px 12px; } }

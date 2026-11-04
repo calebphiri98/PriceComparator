@@ -1,0 +1,10 @@
+
+main.container { width: min(calc(100% - 32px), 1080px); }
+main.container > .form-box { width: min(100%, 540px); max-width: 540px; margin: clamp(20px, 5vw, 54px) auto; padding: clamp(20px, 4vw, 34px); box-sizing: border-box; }
+main.container > .form-box h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); margin: 0 0 20px; }
+main.container > .form-box input, main.container > .form-box select, main.container > .form-box textarea { width: 100%; min-width: 0; max-width: 100%; font: inherit; }
+main.container > .form-box .btn { min-height: 46px; }
+@media (max-width: 600px) {
+  main.container { width: calc(100% - 20px); }
+  main.container > .form-box { margin: 16px auto; padding: 20px 16px; border-radius: 14px; }
+}

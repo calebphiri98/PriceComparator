@@ -8,6 +8,8 @@ $area = agri_allowed_area($_GET['area'] ?? 'lunzu');
 $place = substr(trim((string) ($_GET['place'] ?? '')), 0, 55);
 $query = substr(trim((string) ($_GET['crop'] ?? '')), 0, 65);
 $source = in_array($_GET['source'] ?? '', ['all', 'local', 'buyer', 'farmer', 'external'], true) ? $_GET['source'] : 'all';
+require_once __DIR__ . '/includes/listing_contacts.php';
+$contactMap = agri_public_listing_contacts($db);
 $rows = agri_query_prices($db);
 $filtered = [];
 $totals = [];
@@ -65,6 +67,10 @@ require 'includes/header.php';
             <div class="agri-market-art"><img loading="lazy" src="<?= esc(agri_crop_image($price['crop'], $price['photo_path'])) ?>" alt="<?= $price['photo_path'] ? 'Uploaded produce photo of ' : 'Illustration of ' ?><?= esc($price['crop']) ?>"><span class="agri-source-tag"><?= esc($price['source']) ?></span></div>
             <div class="agri-market-body"><div class="agri-card-top"><h3><?= esc($price['crop']) ?></h3><strong><?= esc(agri_currency($price['price_per_kg'])) ?><small> / kg</small></strong></div>
             <div class="agri-meta"><span>⌖ <?= esc($price['location']) ?></span><span>Observed: <?= esc(agri_datetime($price['observed_at'])) ?></span></div>
+            <?php $listedContact = $contactMap[$price['listing_type'] . ':' . $price['id']] ?? null; ?>
+            <?php if ($listedContact && trim($listedContact['phone']) !== ''): ?>
+            <p class="agri-listing-contact"><span><?= esc($listedContact['name']) ?></span><span>Call: <a href="tel:<?= esc(preg_replace('/[^0-9+]/', '', $listedContact['phone'])) ?>"><?= esc($listedContact['phone']) ?></a></span></p>
+            <?php endif; ?>
             <?php if (!empty($price['source_url']) && filter_var($price['source_url'], FILTER_VALIDATE_URL) && str_starts_with($price['source_url'], 'https://')): ?><a class="agri-source-link" href="<?= esc($price['source_url']) ?>" rel="noopener noreferrer" target="_blank">Visit original source</a><?php endif; ?>
             <div class="agri-card-footer">
                 <?php if ($price['listing_type'] !== 'legacy'): ?>
