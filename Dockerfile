@@ -1,4 +1,12 @@
-﻿FROM php:8.3-apache
+FROM php:8.3-apache
+
+RUN printf '%s\n' \
+    'file_uploads=On' \
+    'upload_max_filesize=5M' \
+    'post_max_size=12M' \
+    'max_file_uploads=10' \
+    > /usr/local/etc/php/conf.d/99-agri-uploads.ini
+
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends libxml2-dev libcurl4-openssl-dev libsqlite3-dev && \
