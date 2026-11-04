@@ -99,6 +99,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['moderate_comment'])) 
     exit;
 }
 
+// ---------- Admin SMS composer (selected recipients only) ----------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_targeted_sms'])) {
+    $flash_type = 'error';
+    $flash_text = '';
+    $audience = (string) ($_POST['sms_audience'] ?? '');
+    $sms_body = trim((string) ($_POST['sms_body'] ?? ''));
+    $allowed_audiences = ['buyers', 'farmers', 'admins', 'all', 'number'];
+
+    if (!csrf_valid()) {
+        $flash_text = 'Session expired. Refresh the page and try again.';
+    } elseif (!in_array($audience, $allowed_audiences, true)) {
+        $flash_text = 'Choose a valid recipient group.';
+    } elseif ($sms_body === '' || preg_match_all('/./us', $sms_body) > 500) {
+        $flash_text = 'Enter a message (maximum 500 characters).';
+    } elseif (($_POST['sms_confirm'] ?? '') !== '1') {
+        $flash_text = 'Confirm the recipients before sending.';
+    } else {
+        $recipients = [];
+        if ($audience === 'number') {
+            $raw_phone = trim((string) ($_POST['sms_new_phone'] ?? ''));
+            if (sms_normalize_phone($raw_phone) === null) {
+                $flash_text = 'Enter a valid Malawi mobile phone number.';
+            } else {
+                $recipients[] = ['phone' => $raw_phone, 'user_id' => null];
+            }
+        } else {
+            $role = ['buyers' => 'buyer', 'farmers' => 'farmer', 'admins' => 'admin'][$audience] ?? null;
+            if ($role === null) {
+                $rows = $db->query("SELECT id, phone FROM users WHERE role IN ('buyer', 'farmer', 'admin') ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+            } else {
+                $stmt = $db->prepare('SELECT id, phone FROM users WHERE role = ? ORDER BY id');
+                $stmt->execute([$role]);
+                $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            foreach ($rows as $row) {
+                $recipients[] = ['phone' => (string) $row['phone'], 'user_id' => (int) $row['id']];
+            }
+        }
+        if ($flash_text === '') {
+            $max = max(1, (int) (sms_config()['max_broadcast'] ?? 100));
+            if (!$recipients) {
+                $flash_text = 'No registered users were found in that recipient group.';
+            } elseif (count($recipients) > $max) {
+                $flash_text = 'Selected group has ' . count($recipients) . ' users, above the safety limit of ' . $max . '. Increase SMS_MAX_BROADCAST deliberately before sending.';
+            } elseif (!sms_is_configured()) {
+                $flash_text = 'TextBee is not configured. SMS was not sent.';
+            } else {
+                $result = sms_send_many($db, $recipients, $sms_body);
+                $flash_type = ($result['sent'] > 0 && $result['failed'] === 0 && $result['skipped'] === 0) ? 'success' : 'error';
+                $flash_text = sms_summary($result);
+            }
+        }
+    }
+    $_SESSION['flash'] = ['type' => $flash_type, 'text' => $flash_text];
+    header('Location: admin.php?section=sms');
+    exit;
+}
+
 // ---------- Review submissions + test SMS ----------
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && (isset($_POST['review_buyer']) || isset($_POST['review_farmer']) || isset($_POST['send_test_sms']))) {
@@ -193,6 +251,11 @@ if ($section == 'feeds') {
 
 if ($section == 'sms') {
     $sms_logs = $db->query("SELECT * FROM sms_log ORDER BY id DESC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
+    $sms_role_counts = ['buyer' => 0, 'farmer' => 0, 'admin' => 0];
+    foreach ($db->query("SELECT role, COUNT(*) AS total FROM users WHERE role IN ('buyer','farmer','admin') GROUP BY role")->fetchAll(PDO::FETCH_ASSOC) as $count_row) {
+        $sms_role_counts[$count_row['role']] = (int) $count_row['total'];
+    }
+    $sms_total_users = array_sum($sms_role_counts);
 }
 
 $page_title = "Admin Panel";
@@ -440,11 +503,33 @@ echo pill_styles();
                         Set <code>TEXTBEE_API_KEY</code> (optionally <code>TEXTBEE_DEVICE_ID</code>), then restart the server.
                     <?php endif; ?>
                 </p>
-                <form method="POST" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <form method="POST" action="admin.php?section=sms" id="agri-sms-composer" style="display:grid;gap:14px;max-width:650px;">
                     <?= csrf_field() ?>
-                    <input type="hidden" name="send_test_sms" value="1">
-                    <input type="text" name="test_phone" required maxlength="10" pattern="[0-9]{10}" placeholder="0888123456" style="width:160px; padding:8px;">
-                    <button type="submit" class="btn" style="padding:8px 14px;">Send test SMS</button>
+                    <input type="hidden" name="send_targeted_sms" value="1">
+                    <label for="sms_audience"><strong>Send message to</strong></label>
+                    <select id="sms_audience" name="sms_audience" required style="padding:11px;border:1px solid #b6cbbb;border-radius:8px;width:100%;background:#fff;">
+                        <option value="" disabled selected>Select recipients</option>
+                        <option value="buyers">All buyers (<?= (int) $sms_role_counts['buyer'] ?>)</option>
+                        <option value="farmers">All farmers (<?= (int) $sms_role_counts['farmer'] ?>)</option>
+                        <option value="admins">Administrators only (<?= (int) $sms_role_counts['admin'] ?>)</option>
+                        <option value="all">All registered users (<?= (int) $sms_total_users ?>)</option>
+                        <option value="number">New phone number</option>
+                    </select>
+                    <div id="agri-sms-new-number" hidden>
+                        <label for="sms_new_phone"><strong>Recipient's phone number</strong></label>
+                        <input id="sms_new_phone" type="tel" name="sms_new_phone" placeholder="0999123456" autocomplete="tel" style="display:block;width:100%;padding:11px;border:1px solid #b6cbbb;border-radius:8px;">
+                    </div>
+                    <div>
+                        <label for="sms_body"><strong>Message</strong></label>
+                        <textarea id="sms_body" name="sms_body" maxlength="500" rows="5" required placeholder="Write the SMS message here..." style="display:block;width:100%;padding:11px;border:1px solid #b6cbbb;border-radius:8px;"></textarea>
+                        <small id="agri-sms-length">0 / 500 characters. Long messages may be split into multiple billable SMS segments.</small>
+                    </div>
+                    <p id="agri-sms-recipient-summary" aria-live="polite" style="margin:0;">Select a group to preview its size.</p>
+                    <label style="display:flex;gap:9px;align-items:flex-start;">
+                        <input type="checkbox" name="sms_confirm" value="1" required style="margin-top:4px;">
+                        <span>I confirm this message should be sent to the selected recipients. Sending may incur SMS charges.</span>
+                    </label>
+                    <button type="submit" class="btn" id="agri-sms-send-button" style="padding:10px 16px;justify-self:start;">Send SMS</button>
                 </form>
             </div>
 
