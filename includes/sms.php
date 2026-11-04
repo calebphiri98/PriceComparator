@@ -33,7 +33,7 @@ function sms_config(): array
 function sms_is_configured(): bool
 {
     $cfg = sms_config();
-    return $cfg['api_key'] !== '' && $cfg['device_id'] !== '';
+    return $cfg['api_key'] !== '';
 }
 
 function sms_normalize_phone(string $phone): ?string
@@ -65,6 +65,7 @@ function sms_log(?PDO $db, ?int $user_id, string $phone, string $message, string
         $stmt = $db->prepare("INSERT INTO sms_log (user_id, phone, message, status, response) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$user_id, $phone, $message, $status, substr($response, 0, 500)]);
     } catch (Throwable $e) {
+        error_log('AgriPrice SMS log insert failed: ' . $e->getMessage());
     }
 }
 
@@ -151,7 +152,7 @@ function sms_send_many(?PDO $db, array $recipients, string $message): array
 
     if (!sms_is_configured()) {
         foreach ($numbers as $to => $uid) {
-            sms_log($db, $uid, (string) $to, $message, 'skipped', 'TextBee is not configured (set TEXTBEE_API_KEY and TEXTBEE_DEVICE_ID)');
+            sms_log($db, $uid, (string) $to, $message, 'skipped', 'TextBee is not configured (set TEXTBEE_API_KEY)');
             $result['skipped']++;
         }
         $result['detail'] = 'TextBee is not configured.';
@@ -159,7 +160,7 @@ function sms_send_many(?PDO $db, array $recipients, string $message): array
     }
 
     $cfg = sms_config();
-    $url = rtrim($cfg['base_url'], '/') . '/gateway/devices/' . rawurlencode($cfg['device_id']) . '/send-sms';
+    $url = rtrim($cfg['base_url'], '/') . '/gateway/send-sms';
 
     foreach (array_chunk($numbers, 50, true) as $chunk) {
         $list = array_map('strval', array_keys($chunk));
@@ -167,13 +168,18 @@ function sms_send_many(?PDO $db, array $recipients, string $message): array
         $response = '';
 
         try {
-            $json = json_encode(
-                ['recipients' => $list, 'message' => $message],
-                JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE
-            );
+            $payload = ['recipients' => $list, 'message' => $message];
+            if ($cfg['device_id'] !== '') {
+                $payload['deviceId'] = $cfg['device_id'];
+            }
+            $json = json_encode($payload, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE);
             [$status, $body, $err] = sms_http_post($url, (string) $json, $cfg['api_key']);
             $ok = $status >= 200 && $status < 300;
-            $response = $ok ? 'HTTP ' . $status : trim('HTTP ' . $status . ' ' . $err . ' ' . $body);
+            $decoded = json_decode($body, true);
+            $batchId = is_array($decoded) ? ($decoded['data']['smsBatchId'] ?? $decoded['smsBatchId'] ?? '') : '';
+            $response = $ok
+                ? 'TextBee accepted HTTP ' . $status . ($batchId !== '' ? ' batch=' . (string) $batchId : '') . '; delivery unconfirmed'
+                : trim('HTTP ' . $status . ' ' . $err . ' ' . $body);
         } catch (Throwable $e) {
             $response = 'Exception: ' . $e->getMessage();
         }
@@ -207,7 +213,7 @@ function sms_add(array $total, array $r): array
 function sms_summary(array $r): string
 {
     $parts = [];
-    if (!empty($r['sent']))    { $parts[] = $r['sent'] . ' sent'; }
+    if (!empty($r['sent']))    { $parts[] = $r['sent'] . ' accepted by TextBee (delivery unconfirmed)'; }
     if (!empty($r['failed']))  { $parts[] = $r['failed'] . ' failed'; }
     if (!empty($r['skipped'])) { $parts[] = $r['skipped'] . ' skipped'; }
 

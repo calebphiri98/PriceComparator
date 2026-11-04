@@ -437,7 +437,7 @@ echo pill_styles();
                         <span class="pill pill-approved">TextBee configured</span>
                     <?php else: ?>
                         <span class="pill pill-rejected">Not configured</span>
-                        Set <code>TEXTBEE_API_KEY</code> and <code>TEXTBEE_DEVICE_ID</code>, then restart the server.
+                        Set <code>TEXTBEE_API_KEY</code> (optionally <code>TEXTBEE_DEVICE_ID</code>), then restart the server.
                     <?php endif; ?>
                 </p>
                 <form method="POST" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -470,7 +470,7 @@ echo pill_styles();
                             <td><?= esc($l['message']) ?></td>
                             <td>
                                 <?php if ($l['status'] === 'sent'): ?>
-                                    <span class="pill pill-approved">Sent</span>
+                                    <span class="pill pill-approved">API accepted (not confirmed delivered)</span>
                                 <?php elseif ($l['status'] === 'failed'): ?>
                                     <span class="pill pill-rejected">Failed</span>
                                 <?php else: ?>
