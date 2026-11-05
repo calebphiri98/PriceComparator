@@ -54,11 +54,12 @@ function nav_active($file, $current) {
                     <a href="crop-catalog.php"<?= nav_active('crop-catalog.php', $current_page) ?>>Crops</a>
                     <a href="contracts.php"<?= nav_active('contracts.php', $current_page) ?>>Contracts</a>
                     <details class="agri-explore">
-                        <summary<?= in_array($current_page, ['farmer-prices.php', 'outside-markets.php', 'trending.php'], true) ? ' class="active"' : '' ?>>Explore <span aria-hidden="true" class="agri-chevron"></span></summary>
+                        <summary<?= in_array($current_page, ['farmer-prices.php', 'outside-markets.php', 'trending.php', 'price-reports.php'], true) ? ' class="active"' : '' ?>>Explore <span aria-hidden="true" class="agri-chevron"></span></summary>
                         <div class="agri-explore-menu">
                             <a href="farmer-prices.php"<?= nav_active('farmer-prices.php', $current_page) ?>>Farmer Prices</a>
                             <a href="outside-markets.php"<?= nav_active('outside-markets.php', $current_page) ?>>Outside Markets</a>
                             <a href="trending.php"<?= nav_active('trending.php', $current_page) ?>>Trending Crops</a>
+                            <a href="price-reports.php"<?= nav_active('price-reports.php', $current_page) ?>>Price Reports</a>
                         </div>
                     </details>
                 </nav>
@@ -111,7 +112,7 @@ function nav_active($file, $current) {
                 <?php endif; ?>
 
                 <?php if (in_array($_SESSION['role'] ?? '', ['farmer', 'admin'], true)): ?>
-                    <a href="price-reports.php">Price Reports</a>
+                    <a href="price-reports.php"<?= nav_active('price-reports.php', $current_page) ?>>Price Reports</a>
                 <?php endif; ?>
 
                 <?php if (($_SESSION['role'] ?? '') === 'admin'): ?>
@@ -125,11 +126,11 @@ function nav_active($file, $current) {
                     <a href="gross-margin.php">Gross Margin Calculator</a>
                 <?php endif; ?>
 
-                <a href="market-prices.php">Current Market Prices</a>
-                <a href="crop-catalog.php">Crop Directory</a>
+                <a href="market-prices.php"<?= nav_active('market-prices.php', $current_page) ?>>Current Market Prices</a>
+                <a href="crop-catalog.php"<?= nav_active('crop-catalog.php', $current_page) ?>>Crop Directory</a>
                 <a href="farmer-prices.php"<?= nav_active('farmer-prices.php', $current_page) ?>>Farmer Prices</a>
-                <a href="contracts.php">Browse Contracts</a>
-                <a href="trending.php">Trending Crops</a>
+                <a href="contracts.php"<?= nav_active('contracts.php', $current_page) ?>>Browse Contracts</a>
+                <a href="trending.php"<?= nav_active('trending.php', $current_page) ?>>Trending Crops</a>
                 <a href="logout.php" class="logout-link">Logout</a>
                 <?php endif; ?>
             </div>

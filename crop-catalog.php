@@ -28,7 +28,7 @@ $q = substr(trim((string) ($_GET['q'] ?? '')), 0, 60);
 require 'includes/header.php';
 ?>
 <div class="agri-shell"><?php if (isset($_SESSION['user_id'])) require 'includes/quick-menu.php'; ?><div class="agri-content">
-    <div class="agri-page-intro"><span class="agri-kicker">DISCOVER MALAWI PRODUCE</span><h1>Explore the crop directory</h1><p>Browse familiar and emerging crops. Crops show the latest photo uploaded by farmers and buyers; crops without a photo use an illustration.</p></div>
+    <div class="agri-page-intro"><span class="agri-kicker">DISCOVER MALAWI PRODUCE</span><h1>Explore the crop directory</h1></div>
     <form method="GET" class="agri-searchline"><input type="search" name="q" placeholder="Search crop names" value="<?= esc($q) ?>"><button class="btn">Search crops</button></form>
     <div class="agri-crop-grid">
         <?php foreach ($all as $crop): if ($q !== '' && stripos($crop, $q) === false) continue; ?>

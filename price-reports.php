@@ -59,33 +59,36 @@ foreach ($raw as $point) {
 }
 arsort($available);
 $crops = array_keys($available);
+
 $selected = trim((string) ($_GET['crop'] ?? ''));
-if ($selected === '') $selected = $crops[0] ?? '';
 $compare = trim((string) ($_GET['compare'] ?? ''));
-if (!in_array($selected, $crops, true)) $selected = '';
-if (!in_array($compare, $crops, true) || $compare === $selected) $compare = '';
+
+if ($selected !== '' && !in_array($selected, $crops, true)) {
+    $selected = '';
+}
+if ($compare !== '' && (!in_array($compare, $crops, true) || $compare === $selected)) {
+    $compare = '';
+}
+
 $chartGroups = [];
 foreach ($filtered as $point) {
-    if ($point['crop'] !== $selected && $point['crop'] !== $compare) continue;
+    if ($selected !== '' && $point['crop'] !== $selected && $point['crop'] !== $compare) continue;
+    if ($selected === '' && $compare !== '' && $point['crop'] !== $compare) continue;
+
     $day = date('Y-m-d', strtotime($point['recorded_at']));
     $key = $point['crop'] . '|' . $day;
     if (!isset($chartGroups[$key])) $chartGroups[$key] = ['crop' => $point['crop'], 'date' => $day, 'total' => 0, 'count' => 0];
     $chartGroups[$key]['total'] += (float) $point['price_per_kg'];
     $chartGroups[$key]['count']++;
 }
+
 $series = [];
 foreach ($chartGroups as $group) {
     $series[$group['crop']][] = ['date' => $group['date'], 'price' => round($group['total'] / $group['count'], 2)];
 }
 foreach ($series as &$points) usort($points, static fn($a, $b) => strcmp($a['date'], $b['date']));
 unset($points);
-$summary = [];
-foreach ($series as $crop => $points) {
-    $first = $points[0];
-    $last = $points[count($points) - 1];
-    $delta = count($points) > 1 && $first['price'] > 0 ? (($last['price'] - $first['price']) / $first['price']) * 100 : null;
-    $summary[] = ['crop' => $crop, 'first' => $first, 'last' => $last, 'change' => $delta, 'observations' => count($points)];
-}
+
 require 'includes/header.php';
 ?>
 <style>
@@ -94,38 +97,48 @@ require 'includes/header.php';
 .agri-chart-toolbar button:hover{background:#e7f8ef}
 .agri-chart-toolbar button.is-active{background:linear-gradient(135deg,#12b76a,#0ea5e9);border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(18,183,106,.35)}
 .agri-chart-toolbar button:focus-visible{outline:3px solid #2e90fa;outline-offset:2px}
+
+.agri-trend-panel {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    margin-bottom: 24px;
+}
+.agri-chart-wrap {
+    position: relative;
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid #f1f5f9;
+}
 </style>
 <div class="agri-shell"><?php if (isset($_SESSION['user_id'])) require 'includes/quick-menu.php'; ?><div class="agri-content">
-    <div class="agri-page-intro"><span class="agri-kicker">PRICE INTELLIGENCE</span><h1>See the market move.</h1><p>Interactive price trends built from actual dated observations, with crop comparisons and regional filters. No illustrative or predicted price values.</p></div>
+    <div class="agri-page-intro"><span class="agri-kicker">PRICE INTELLIGENCE</span><h1>See the market move.</h1></div>
     <form method="GET" class="agri-filters" aria-label="Price chart filters">
         <div><label for="dataset">Dataset</label><select name="dataset" id="dataset"><option value="platform" <?= $source === 'platform' ? 'selected' : '' ?>>Platform price history</option><option value="ace" <?= $source === 'ace' ? 'selected' : '' ?>>ACE imported reference prices</option></select></div>
-        <div><label for="crop">Crop</label><select name="crop" id="crop"><option value="">Choose a crop</option><?php foreach ($crops as $crop): ?><option value="<?= esc($crop) ?>" <?= $crop === $selected ? 'selected' : '' ?>><?= esc($crop) ?></option><?php endforeach; ?></select></div>
+        <div><label for="crop">Crop</label><select name="crop" id="crop"><option value="">-- All Crops --</option><?php foreach ($crops as $crop): ?><option value="<?= esc($crop) ?>" <?= $crop === $selected ? 'selected' : '' ?>><?= esc($crop) ?></option><?php endforeach; ?></select></div>
         <div><label for="compare">Compare with</label><select name="compare" id="compare"><option value="">No comparison</option><?php foreach ($crops as $crop): ?><option value="<?= esc($crop) ?>" <?= $crop === $compare ? 'selected' : '' ?>><?= esc($crop) ?></option><?php endforeach; ?></select></div>
         <div><label for="area">Region</label><select name="area" id="area"><?php foreach (['all','lunzu','blantyre','southern','central','northern'] as $a): ?><option value="<?= $a ?>" <?= $a === $area ? 'selected' : '' ?>><?= esc(agri_area_label($a)) ?></option><?php endforeach; ?></select></div>
         <div><label for="days">Period</label><select name="days" id="days"><?php foreach (['30'=>'30 days','90'=>'90 days','180'=>'6 months','365'=>'12 months','all'=>'All available'] as $key => $label): ?><option value="<?= $key ?>" <?= $days === $key ? 'selected' : '' ?>><?= $label ?></option><?php endforeach; ?></select></div>
         <button class="btn" type="submit">Update chart</button>
     </form>
     <div class="agri-trend-panel">
-        <div class="agri-section-head"><div><span class="agri-kicker">HISTORICAL OBSERVATIONS · MWK PER KG</span><h2><?= $selected ? esc($selected) . ($compare ? ' vs ' . esc($compare) : '') : 'Crop prices' ?></h2></div><span class="agri-pill"><?= $source === 'ace' ? 'ACE observations' : 'Platform history' ?></span></div>
+        <div class="agri-section-head"><div><span class="agri-kicker">HISTORICAL OBSERVATIONS · MWK PER KG</span><h2><?= $selected ? esc($selected) . ($compare ? ' vs ' . esc($compare) : '') : 'All Crops Market Prices' ?></h2></div><span class="agri-pill"><?= $source === 'ace' ? 'ACE observations' : 'Platform history' ?></span></div>
         <?php if (!$series): ?>
             <div class="agri-empty"><h3>Not enough data to draw a price trend</h3><p>Try another region or period. Import ACE observations through the admin feed updater if external data is not yet available.</p></div>
         <?php else: ?>
             <div class="agri-chart-toolbar" id="agri-chart-type" role="group" aria-label="Chart type">
-                <button type="button" data-type="bar" class="is-active" aria-pressed="true">Bar</button>
-                <button type="button" data-type="line" aria-pressed="false">Line</button>
+                <button type="button" data-type="line" class="is-active" aria-pressed="true">Line</button>
+                <button type="button" data-type="bar" aria-pressed="false">Bar</button>
                 <button type="button" data-type="area" aria-pressed="false">Area</button>
                 <button type="button" data-type="pie" aria-pressed="false">Pie</button>
             </div>
-            <div class="agri-chart-wrap"><canvas id="agri-trend-chart" width="1100" height="420" role="img" aria-label="Bar chart of crop prices in Malawi kwacha per kilogram"></canvas><div id="agri-chart-tooltip" class="agri-chart-tooltip" hidden></div></div>
+            <div class="agri-chart-wrap"><canvas id="agri-trend-chart" width="1100" height="420" role="img" aria-label="Chart of crop prices in Malawi kwacha per kilogram"></canvas><div id="agri-chart-tooltip" class="agri-chart-tooltip" hidden></div></div>
             <div class="agri-chart-legend" id="agri-chart-legend"></div>
         <?php endif; ?>
     </div>
-    <?php if ($summary): ?><div class="agri-summary-grid"><?php foreach ($summary as $row): ?>
-        <div class="agri-summary-card"><span><?= esc($row['crop']) ?></span><strong><?= esc(agri_currency($row['last']['price'])) ?><small>/kg</small></strong>
-            <?php if ($row['change'] !== null): ?><p class="<?= $row['change'] >= 0 ? 'agri-up' : 'agri-down' ?>"><?= $row['change'] >= 0 ? '+' : '' ?><?= number_format($row['change'], 1) ?>% from first plotted point</p>
-            <?php else: ?><p>Only one dated point — no trend available</p><?php endif; ?>
-            <small><?= $row['observations'] ?> daily points · <?= esc($row['first']['date']) ?> to <?= esc($row['last']['date']) ?></small></div>
-    <?php endforeach; ?></div><?php endif; ?>
     
 </div></div>
 <?php if ($series): ?><script>window.agriTrendData = <?= json_encode($series, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_NUMERIC_CHECK) ?>;</script><script src="assets/agri-trends.js" defer></script><?php endif; ?>
