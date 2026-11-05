@@ -15,7 +15,7 @@ $filtered = array_values(array_filter($rows, static function($row) use($area,$cr
 require 'includes/header.php';
 ?>
 <div class="agri-shell"><?php if (isset($_SESSION['user_id'])) require 'includes/quick-menu.php'; ?><div class="agri-content">
-    <div class="agri-page-intro"><span class="agri-kicker">FARMER MARKETPLACE</span><h1>Produce straight from farmers.</h1><p>Explore approved farmer asking prices. Uploaded photos help buyers inspect produce before making contact.</p></div>
+    <div class="agri-page-intro"><span class="agri-kicker">FARMER MARKETPLACE</span><h1>Produce straight from farmers.</h1></div>
     <form class="agri-filters" method="GET"><div><label for="farmer-crop">Crop</label><input id="farmer-crop" name="crop" value="<?= esc($crop) ?>" placeholder="Search crop"></div><div><label for="farmer-area">Area</label><select id="farmer-area" name="area"><?php foreach (['all','lunzu','blantyre','southern','central','northern'] as $a): ?><option value="<?= $a ?>" <?= $a === $area ? 'selected' : '' ?>><?= esc(agri_area_label($a)) ?></option><?php endforeach; ?></select></div><button class="btn" type="submit">Browse offers</button></form>
     <div class="agri-section-head"><div><span class="agri-kicker"><?= count($filtered) ?> APPROVED SUBMISSIONS</span><h2>Farmer expected prices</h2></div><a href="farmer-add-price.php">Post an expected price</a></div>
     <?php if (!$filtered): ?><div class="agri-empty"><h3>Nothing matched</h3><p>Try a wider location or a different crop.</p></div><?php endif; ?>

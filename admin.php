@@ -13,7 +13,7 @@ $message = '';
 $error = '';
 $section = $_GET['section'] ?? 'prices';
 
-// Message saved before a redirect (approve / reject / test SMS)
+
 if (!empty($_SESSION['flash'])) {
     $flash = $_SESSION['flash'];
     unset($_SESSION['flash']);
@@ -84,7 +84,7 @@ if (isset($_POST['add_admin']) && csrf_valid()) {
     }
 }
 
-// ---------- Moderate farmer price discussions ----------
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['moderate_comment'])) {
     $decision = (string) ($_POST['decision'] ?? '');
     $id = (int) ($_POST['id'] ?? 0);
@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['moderate_comment'])) 
     exit;
 }
 
-// ---------- Admin SMS composer (selected recipients only) ----------
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['send_targeted_sms'])) {
     $flash_type = 'error';
     $flash_text = '';
@@ -334,7 +334,7 @@ echo pill_styles();
 
             <div class="review-card">
                 <h3>Buyer price offers waiting for approval (<?= count($pending_buyer) ?>)</h3>
-                <p style="color:#555; font-size:.9rem;">Approving publishes the offer, texts the buyer, and texts all farmers. Rejecting texts the buyer with your reason.</p>
+                
                 <table>
                     <thead>
                         <tr>
@@ -380,7 +380,7 @@ echo pill_styles();
 
             <div class="review-card">
                 <h3>Farmer expected prices waiting for approval (<?= count($pending_farmer) ?>)</h3>
-                <p style="color:#555; font-size:.9rem;">Approving shows the price on Market Prices and Farmer Prices and texts the farmer. Rejecting texts the farmer with your reason.</p>
+                
                 <table>
                     <thead>
                         <tr>
