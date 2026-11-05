@@ -47,6 +47,5 @@ $menu_page = basename($_SERVER['PHP_SELF']);
     <?php endif; ?>
 
     <a href="crop-catalog.php"<?= nav_active('crop-catalog.php', $menu_page) ?>>Crop Directory</a>
-    <a href="market-news.php"<?= nav_active('market-news.php', $menu_page) ?>>Agricultural News</a>
     <a href="logout.php" class="logout-link">Logout</a>
 </div>

@@ -9,10 +9,9 @@ require_once __DIR__ . '/includes/listing_contacts.php';
 $contactMap = agri_public_listing_contacts($db);
 $search = trim($_GET['q'] ?? '');
 $search_results = [];
-$home_local = array_values(array_filter(agri_query_prices($db), static fn($r) => agri_location_match((string)$r['location'], 'lunzu')));
+$home_local = array_values(array_filter(agri_query_prices($db, false), static fn($r) => agri_location_match((string)$r['location'], 'lunzu')));
 usort($home_local, static fn($a, $b) => strtotime($b['observed_at'] ?: '2000-01-01') <=> strtotime($a['observed_at'] ?: '2000-01-01'));
 $home_local = array_slice($home_local, 0, 4);
-$home_news = $db->query('SELECT * FROM agri_news ORDER BY published_at DESC LIMIT 3')->fetchAll(PDO::FETCH_ASSOC);
 
 if ($search !== '') {
     $stmt = $db->prepare("SELECT crop, price_per_kg, location, '' AS contact, source, NULL AS source_url,
@@ -79,7 +78,6 @@ if ($search !== '') {
     <a href="market-prices.php?area=lunzu">⌖ Prices near Lunzu</a>
     <a href="market-prices.php?area=all">Nationwide prices</a>
     <a href="crop-catalog.php">Browse crop pictures</a>
-    <a href="market-news.php">Agricultural news</a>
     <a href="price-reports.php">Interactive price trends</a>
 </nav>
 
@@ -128,16 +126,6 @@ if ($search !== '') {
     </div>
     <?php endif; ?>
 </div>
-
-<section class="agri-home-feature" aria-labelledby="agri-headlines-heading">
-    <div class="agri-section-head"><div><span class="agri-kicker">AGRICULTURAL INTELLIGENCE</span><h2 id="agri-headlines-heading">Latest farm & market news</h2></div><a href="market-news.php">Read news →</a></div>
-    <?php if (!$home_news): ?><div class="agri-note">News is displayed after the administrator imports external RSS headlines. <a href="market-news.php">See trusted sources</a>.</div><?php endif; ?>
-    <div class="agri-news-grid">
-    <?php foreach ($home_news as $article): ?>
-        <article class="agri-news-card"><div class="agri-news-icon">↗</div><div class="agri-news-text"><span class="agri-kicker"><?= esc($article['publisher']) ?></span><h3><a href="<?= esc($article['article_url']) ?>" target="_blank" rel="noopener noreferrer"><?= esc($article['title']) ?></a></h3><p><?= esc(agri_datetime($article['published_at'])) ?></p></div></article>
-    <?php endforeach; ?>
-    </div>
-</section>
 
 <section class="quick-access">
     <h2><?= isset($_SESSION['user_id']) && ($_SESSION['role'] ?? '') === 'buyer' ? 'Buyer Quick Actions' : 'Quick Access' ?></h2>

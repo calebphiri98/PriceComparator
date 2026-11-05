@@ -96,7 +96,6 @@ function nav_active($file, $current) {
                         <a href="market-prices.php"<?= nav_active('market-prices.php', $current_page) ?>>Current Market Prices</a>
                         <a href="farmer-prices.php"<?= nav_active('farmer-prices.php', $current_page) ?>>Farmer Prices</a>
                         <a href="price-reports.php"<?= nav_active('price-reports.php', $current_page) ?>>Price Reports</a>
-                        <a href="market-news.php">Agricultural News</a>
                         <a href="contracts.php"<?= nav_active('contracts.php', $current_page) ?>>Browse Contracts</a>
                         <a href="trending.php"<?= nav_active('trending.php', $current_page) ?>>Trending Crops</a>
                     </div>
@@ -129,7 +128,6 @@ function nav_active($file, $current) {
 
                 <a href="market-prices.php">Current Market Prices</a>
                 <a href="crop-catalog.php">Crop Directory</a>
-                <a href="market-news.php">Agricultural News</a>
                 <a href="farmer-prices.php"<?= nav_active('farmer-prices.php', $current_page) ?>>Farmer Prices</a>
                 <a href="contracts.php">Browse Contracts</a>
                 <a href="trending.php">Trending Crops</a>

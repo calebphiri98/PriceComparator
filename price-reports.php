@@ -88,6 +88,13 @@ foreach ($series as $crop => $points) {
 }
 require 'includes/header.php';
 ?>
+<style>
+.agri-chart-toolbar{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.agri-chart-toolbar button{border:2px solid #12b76a;background:#fff;color:#0b7a46;font-weight:700;font-size:.88rem;padding:7px 18px;border-radius:999px;cursor:pointer;transition:background .15s,color .15s,transform .1s}
+.agri-chart-toolbar button:hover{background:#e7f8ef}
+.agri-chart-toolbar button.is-active{background:linear-gradient(135deg,#12b76a,#0ea5e9);border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(18,183,106,.35)}
+.agri-chart-toolbar button:focus-visible{outline:3px solid #2e90fa;outline-offset:2px}
+</style>
 <div class="agri-shell"><?php if (isset($_SESSION['user_id'])) require 'includes/quick-menu.php'; ?><div class="agri-content">
     <div class="agri-page-intro"><span class="agri-kicker">PRICE INTELLIGENCE</span><h1>See the market move.</h1><p>Interactive price trends built from actual dated observations, with crop comparisons and regional filters. No illustrative or predicted price values.</p></div>
     <form method="GET" class="agri-filters" aria-label="Price chart filters">
@@ -103,10 +110,15 @@ require 'includes/header.php';
         <?php if (!$series): ?>
             <div class="agri-empty"><h3>Not enough data to draw a price trend</h3><p>Try another region or period. Import ACE observations through the admin feed updater if external data is not yet available.</p></div>
         <?php else: ?>
-            <div class="agri-chart-wrap"><canvas id="agri-trend-chart" width="1100" height="420" role="img" aria-label="Line chart showing daily average crop prices over time"></canvas><div id="agri-chart-tooltip" class="agri-chart-tooltip" hidden></div></div>
+            <div class="agri-chart-toolbar" id="agri-chart-type" role="group" aria-label="Chart type">
+                <button type="button" data-type="bar" class="is-active" aria-pressed="true">Bar</button>
+                <button type="button" data-type="line" aria-pressed="false">Line</button>
+                <button type="button" data-type="area" aria-pressed="false">Area</button>
+                <button type="button" data-type="pie" aria-pressed="false">Pie</button>
+            </div>
+            <div class="agri-chart-wrap"><canvas id="agri-trend-chart" width="1100" height="420" role="img" aria-label="Bar chart of crop prices in Malawi kwacha per kilogram"></canvas><div id="agri-chart-tooltip" class="agri-chart-tooltip" hidden></div></div>
             <div class="agri-chart-legend" id="agri-chart-legend"></div>
         <?php endif; ?>
-        <p class="agri-helper">Each point is the arithmetic mean of observations recorded for a crop on that day in the chosen dataset and region. Comparing different crops does not account for differences in crop quality, market type, sample size or inflation.</p>
     </div>
     <?php if ($summary): ?><div class="agri-summary-grid"><?php foreach ($summary as $row): ?>
         <div class="agri-summary-card"><span><?= esc($row['crop']) ?></span><strong><?= esc(agri_currency($row['last']['price'])) ?><small>/kg</small></strong>

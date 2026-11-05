@@ -308,7 +308,7 @@ function agri_listing(PDO $db, string $type, int $id): ?array
     return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
-function agri_query_prices(PDO $db): array
+function agri_query_prices(PDO $db, bool $includeFarmer = true): array
 {
     $result = [];
     foreach ($db->query("SELECT id, crop, price_per_kg, location, source, updated_at AS observed_at, NULL AS photo_path, NULL AS source_url, 'local' AS listing_type FROM market_prices WHERE source <> 'Buyer Offer'")->fetchAll(PDO::FETCH_ASSOC) as $r) {
@@ -317,8 +317,10 @@ function agri_query_prices(PDO $db): array
     foreach ($db->query("SELECT id, crop, amount_mk / NULLIF(quantity, 0) AS price_per_kg, location, 'Buyer offer' AS source, created_at AS observed_at, photo_path, NULL AS source_url, 'buyer' AS listing_type FROM outside_markets WHERE quantity > 0")->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $result[] = $r;
     }
-    foreach ($db->query("SELECT id, crop, expected_price AS price_per_kg, location, 'Farmer expected' AS source, COALESCE(reviewed_at, created_at) AS observed_at, photo_path, NULL AS source_url, 'farmer' AS listing_type FROM farmer_expected_prices WHERE status = 'approved'")->fetchAll(PDO::FETCH_ASSOC) as $r) {
-        $result[] = $r;
+    if ($includeFarmer) {
+        foreach ($db->query("SELECT id, crop, expected_price AS price_per_kg, location, 'Farmer expected' AS source, COALESCE(reviewed_at, created_at) AS observed_at, photo_path, NULL AS source_url, 'farmer' AS listing_type FROM farmer_expected_prices WHERE status = 'approved'")->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            $result[] = $r;
+        }
     }
     foreach ($db->query("SELECT id, crop, price_per_kg, location, source_name AS source, observed_at, NULL AS photo_path, source_url, 'external' AS listing_type FROM agri_external_quotes")->fetchAll(PDO::FETCH_ASSOC) as $r) {
         $result[] = $r;
@@ -335,6 +337,41 @@ function agri_query_prices(PDO $db): array
     }
     }
     return $result;
+}
+
+/**
+ * Latest uploaded photo for every crop name, taken from the posts that carry a photo
+ * (farmer expected prices, buyer offers, outside markets and contracts).
+ * Returns [lowercase crop name => photo_path]; the first photo found for a crop wins,
+ * and tables are read newest first.
+ */
+function agri_crop_photos(PDO $db): array
+{
+    $sources = [
+        'farmer_expected_prices' => "status = 'approved'",
+        'buyer_price_offers' => "status = 'approved'",
+        'outside_markets' => '1 = 1',
+        'contracts' => '1 = 1',
+    ];
+    $photos = [];
+    foreach ($sources as $table => $where) {
+        try {
+            $rows = $db->query("SELECT crop, photo_path FROM $table WHERE $where AND photo_path IS NOT NULL AND photo_path <> '' ORDER BY id DESC LIMIT 600")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            continue;
+        }
+        foreach ($rows as $row) {
+            $key = strtolower(trim((string) $row['crop']));
+            if ($key === '' || isset($photos[$key])) {
+                continue;
+            }
+            // Only keep photos that agri_crop_image() would actually accept.
+            if (agri_crop_image((string) $row['crop'], (string) $row['photo_path']) !== 'assets/crops/' . agri_crop_slug((string) $row['crop']) . '.svg') {
+                $photos[$key] = (string) $row['photo_path'];
+            }
+        }
+    }
+    return $photos;
 }
 
 function agri_currency($value): string
