@@ -52,10 +52,10 @@ require 'includes/header.php';
         <div>
             <span class="agri-kicker">MALAWI AGRICULTURAL MARKETPLACE</span>
             <h1>Discover crop prices <em>near you.</em></h1>
-            <p>Compare local reference prices, buyer offers and dated external market observations. Every quote is labelled by source and date. Looking for what farmers are asking? See <a href="farmer-prices.php">Farmer Prices</a>.</p>
+            <p>Compare local reference prices, buyer offers and dated external market observations. Every quote is labelled by source and date. Looking for what farmers are asking? See <a href="farmer-prices.php">Farmer Prices</a></p>
             <div class="agri-stats"><span><?= count($filtered) ?> matching observations</span><span><?= count($totals) ?> crops</span><span><?= esc(agri_area_label($area)) ?></span></div>
         </div>
-        <img class="agri-hero-image" src="assets/crops/maize.svg" alt="Illustrated maize crop">
+        
     </div>
     <form method="GET" class="agri-filters" id="agri-market-form" aria-label="Filter market listings">
         <div><label for="crop">Crop</label><input name="crop" id="crop" type="search" list="agri-crops" placeholder="Search any crop" value="<?= esc($query) ?>"><datalist id="agri-crops"><?php foreach ($crops as $crop): ?><option value="<?= esc($crop) ?>"><?php endforeach; ?></datalist></div>
@@ -95,7 +95,7 @@ require 'includes/header.php';
         <?php endforeach; ?>
     </div>
     <?php endif; ?>
-    <div class="agri-note"><strong>Important:</strong> Buyer offers are bids and reference observations may be historical. Compare source dates and confirm terms before making a transaction.</div>
+   
 </div></div>
 <script src="assets/agri-geo.js" defer></script>
 <?php require 'includes/footer.php'; ?>

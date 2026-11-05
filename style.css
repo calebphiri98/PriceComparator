@@ -1,8 +1,4 @@
-﻿/* ==========================================================
-   AgriPrice Malawi - design system
-   Palette: forest green (brand), apple green (accent),
-   maize gold (prices / highlights), cream-green (background)
-   ========================================================== */
+﻿
 
 :root {
     --forest: #1e5631;
@@ -996,3 +992,15 @@ label {
 }
 
 
+/* Links inside the green hero banner (e.g. "Farmer Prices" on Market Prices) must be readable */
+.agri-hero p a {
+    color: #ffd54f;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.agri-hero p a:hover,
+.agri-hero p a:focus-visible {
+    color: #ffffff;
+}

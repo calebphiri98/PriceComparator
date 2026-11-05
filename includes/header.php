@@ -52,7 +52,6 @@ function nav_active($file, $current) {
                     <a href="index.php"<?= nav_active('index.php', $current_page) ?>>Home</a>
                     <a href="market-prices.php"<?= nav_active('market-prices.php', $current_page) ?>>Market Prices</a>
                     <a href="crop-catalog.php"<?= nav_active('crop-catalog.php', $current_page) ?>>Crops</a>
-                    <a href="market-news.php"<?= nav_active('market-news.php', $current_page) ?>>News</a>
                     <a href="contracts.php"<?= nav_active('contracts.php', $current_page) ?>>Contracts</a>
                     <details class="agri-explore">
                         <summary<?= in_array($current_page, ['farmer-prices.php', 'outside-markets.php', 'trending.php'], true) ? ' class="active"' : '' ?>>Explore <span aria-hidden="true" class="agri-chevron"></span></summary>

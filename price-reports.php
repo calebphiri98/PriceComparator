@@ -126,7 +126,7 @@ require 'includes/header.php';
             <?php else: ?><p>Only one dated point — no trend available</p><?php endif; ?>
             <small><?= $row['observations'] ?> daily points · <?= esc($row['first']['date']) ?> to <?= esc($row['last']['date']) ?></small></div>
     <?php endforeach; ?></div><?php endif; ?>
-    <div class="agri-note">These charts describe historical prices, not forecasts or personalised financial advice. <a href="market-prices.php">Compare current listings and their exact observation dates</a>.</div>
+    
 </div></div>
 <?php if ($series): ?><script>window.agriTrendData = <?= json_encode($series, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_NUMERIC_CHECK) ?>;</script><script src="assets/agri-trends.js" defer></script><?php endif; ?>
 <?php require 'includes/footer.php'; ?>
